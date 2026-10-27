@@ -3,6 +3,7 @@
 
 import { db, doc, onSnapshot, setDoc, serverTimestamp } from "./firebase.js";
 import { escapeHtml as esc, formatDateTime } from "./text.js";
+import { setupUpload } from "./admin-upload.js";
 import {
   DEFAULT_SECONDS,
   MAX_SECONDS,
@@ -49,6 +50,15 @@ export function setupWallAdmin({ run, toast, selectTab }) {
   let ticker = null; // 定時檢查有沒有新到期的張，讓列表上的狀態跟著更新
   let expiredKey = "";
 
+  // 從電腦上傳：上傳成功後把「media/檔名」填進表單，類型交給副檔名自動判斷
+  const upload = setupUpload({
+    toast,
+    onUploaded(path) {
+      $("w-url").value = path;
+      $("w-kind").value = "auto";
+    },
+  });
+
   const loaded = () => {
     if (wall) return true;
     toast("圖片牆還在載入，請稍候再試。", true);
@@ -83,6 +93,7 @@ export function setupWallAdmin({ run, toast, selectTab }) {
     syncExpire();
     $("wallFormTitle").textContent = "新增圖片或影片";
     $("wallCancelBtn").hidden = true;
+    upload.reset();
   }
 
   $("w-expire-mode").addEventListener("change", () => {
@@ -343,6 +354,7 @@ export function setupWallAdmin({ run, toast, selectTab }) {
       wall = null;
       expiredKey = "";
       resetForm();
+      upload.stop();
       $("wallPurgeBtn").hidden = true;
       $("wallList").innerHTML = "";
     },

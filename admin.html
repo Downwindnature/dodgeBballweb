@@ -161,12 +161,51 @@
           </div>
         </form>
 
+        <details id="ghBox" class="panel import-box">
+          <summary id="ghSummary">從電腦上傳檔案的設定（GitHub）</summary>
+          <p class="hint">要從電腦直接上傳圖片、GIF、MP4，需要先給這個後台一組「只能寫入這個專案」的 GitHub 權杖（Token）。檔案會存進專案的 <code>media</code> 資料夾，費用是零，但網站重新發布要等一兩分鐘。只在第一次或權杖過期時需要設定。不想設定的話，也可以直接在下面的欄位填網址。</p>
+          <ol class="gh-steps">
+            <li>登入 GitHub → 右上角頭像 → <strong>Settings</strong> → 左下 <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Fine-grained tokens</strong> → <strong>Generate new token</strong>。</li>
+            <li><strong>Repository access</strong> 選 <strong>Only select repositories</strong>，只選這個網站的專案。</li>
+            <li><strong>Permissions → Repository permissions → Contents</strong> 設成 <strong>Read and write</strong>，其他都不要開。</li>
+            <li>按 <strong>Generate token</strong>，複製那串以 <code>github_pat_</code> 開頭的文字，貼到下面。</li>
+          </ol>
+          <div class="field">
+            <label for="gh-repo">GitHub 專案（帳號/專案名稱）</label>
+            <input id="gh-repo" type="text" placeholder="例如 mygithub/bball-office" autocomplete="off" autocapitalize="none" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="gh-token">權杖（Token）</label>
+            <input id="gh-token" type="password" placeholder="貼上 github_pat_…" autocomplete="new-password" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="gh-branch">分支（選填）</label>
+            <input id="gh-branch" type="text" placeholder="留空 = 專案的預設分支" autocomplete="off" autocapitalize="none" spellcheck="false">
+            <p class="hint">只有當 GitHub Pages 發布的不是預設分支時才需要填。</p>
+          </div>
+          <div class="checks">
+            <label><input id="gh-remember" type="checkbox"> 記住權杖（關掉瀏覽器後仍保留）</label>
+          </div>
+          <p class="hint">權杖等同密碼：拿到它的人可以修改這個專案裡的任何檔案（不只是 media 資料夾），請不要貼給別人。沒勾「記住」時只留在這個分頁，登出或關掉分頁就消失；勾了會存在這台瀏覽器裡，而且同一個 GitHub 帳號底下的其他 GitHub Pages 網站也讀得到，請只在自己的電腦上勾。</p>
+          <div class="actions">
+            <button id="ghSaveBtn" type="button" class="btn">測試並儲存</button>
+            <button id="ghClearBtn" type="button" class="btn ghost">清除設定</button>
+          </div>
+          <p id="gh-msg" class="form-msg" role="status" hidden></p>
+        </details>
+
         <form id="wallForm" class="panel" autocomplete="off">
           <h2 id="wallFormTitle">新增圖片或影片</h2>
-          <p class="hint wall-note">把圖片、GIF、MP4 檔案上傳到 GitHub 專案的 <code>media</code> 資料夾，這裡填 <code>media/檔名.jpg</code>。也可以填 <code>https://</code> 開頭的網址。前台沒有任何一張在顯示時，整個圖片牆不會出現。</p>
+          <p class="hint wall-note">可以從電腦上傳檔案，也可以填網址（專案裡的 <code>media/檔名.jpg</code>，或 <code>https://</code> 開頭的網址）。MP4 本身有聲音的話，放在圖片牆上也會有聲音。前台沒有任何一張在顯示時，整個圖片牆不會出現。</p>
+          <div class="field">
+            <label for="w-file">從電腦上傳（圖片、GIF、MP4，單檔 25 MB 以內）</label>
+            <input id="w-file" type="file" accept="image/*,video/*,.mp4,.webm,.m4v,.mov,.ogv">
+            <p id="w-upload-msg" class="hint" role="status" aria-live="polite"></p>
+          </div>
           <div class="field">
             <label for="w-url">檔案路徑或網址</label>
             <input id="w-url" type="text" maxlength="500" placeholder="media/banner.jpg" required>
+            <p class="hint">上傳成功後會自動填入這裡；要用網址的話直接貼在這裡。</p>
           </div>
           <div class="field">
             <label for="w-kind">類型</label>

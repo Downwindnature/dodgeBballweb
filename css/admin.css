@@ -148,6 +148,35 @@ code {
   display: none;
 }
 
+.field input[type="file"] {
+  max-width: 100%;
+  font: inherit;
+}
+
+.hint.bad {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.hint.good {
+  color: #1b6b4a;
+  font-weight: 500;
+}
+
+.form-msg.good {
+  color: #1b6b4a;
+}
+
+.gh-steps {
+  margin: 0 0 16px;
+  padding-left: 1.4rem;
+  font-size: 0.9375rem;
+}
+
+.gh-steps li {
+  margin-bottom: 4px;
+}
+
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
