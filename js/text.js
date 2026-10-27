@@ -99,8 +99,10 @@ export function formatDate(d) {
   return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())}`;
 }
 
-export function formatDateTime(d) {
+// 日期加時間：2026/10/27 20:56；withSeconds 為 true 時是 2026/10/27 20:56:03（24 小時制）
+export function formatDateTime(d, withSeconds = false) {
   if (!(d instanceof Date) || Number.isNaN(d.getTime())) return "";
   const p = (n) => String(n).padStart(2, "0");
-  return `${formatDate(d)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  const hm = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `${formatDate(d)} ${withSeconds ? `${hm}:${p(d.getSeconds())}` : hm}`;
 }

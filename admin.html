@@ -65,9 +65,10 @@
 
       <div class="tabs">
         <button id="tab-ann" type="button" role="tab" aria-selected="true" aria-controls="panel-ann">公告管理</button>
-        <button id="tab-todo" type="button" role="tab" aria-selected="false" aria-controls="panel-todo">待辦事項</button>
+        <button id="tab-todo" type="button" role="tab" aria-selected="false" aria-controls="panel-todo">待辦事項<span id="todoBadge" class="tab-badge" hidden></span></button>
+        <button id="tab-wall" type="button" role="tab" aria-selected="false" aria-controls="panel-wall">圖片牆</button>
         <button id="tab-set" type="button" role="tab" aria-selected="false" aria-controls="panel-set">網站設定</button>
-        <a class="tabs-link" href="index.html" target="_blank" rel="noopener">開啟前台</a>
+        <a class="tabs-link" href="index.html">開啟前台</a>
       </div>
 
       <div id="panel-ann" role="tabpanel" aria-labelledby="tab-ann">
@@ -145,6 +146,73 @@
 
         <h2 id="todoCount" class="list-title">待辦清單</h2>
         <ul id="todoList" class="admin-list"></ul>
+      </div>
+
+      <div id="panel-wall" role="tabpanel" aria-labelledby="tab-wall" hidden>
+        <form id="wallDefaultForm" class="panel" autocomplete="off">
+          <h2>輪播設定</h2>
+          <div class="field">
+            <label for="w-default">圖片預設停留秒數</label>
+            <input id="w-default" type="number" min="1" max="600" step="0.5" required>
+            <p class="hint">一般圖片停留這麼久就換下一張；單張可以另外設定秒數。GIF 與影片不看這個數字：播完後再等 1 秒才換下一張。</p>
+          </div>
+          <div class="actions">
+            <button id="wallDefaultBtn" type="submit" class="btn">儲存秒數</button>
+          </div>
+        </form>
+
+        <form id="wallForm" class="panel" autocomplete="off">
+          <h2 id="wallFormTitle">新增圖片或影片</h2>
+          <p class="hint wall-note">把圖片、GIF、MP4 檔案上傳到 GitHub 專案的 <code>media</code> 資料夾，這裡填 <code>media/檔名.jpg</code>。也可以填 <code>https://</code> 開頭的網址。前台沒有任何一張在顯示時，整個圖片牆不會出現。</p>
+          <div class="field">
+            <label for="w-url">檔案路徑或網址</label>
+            <input id="w-url" type="text" maxlength="500" placeholder="media/banner.jpg" required>
+          </div>
+          <div class="field">
+            <label for="w-kind">類型</label>
+            <select id="w-kind">
+              <option value="auto">自動判斷（依副檔名）</option>
+              <option value="image">圖片</option>
+              <option value="gif">GIF 動圖</option>
+              <option value="video">影片（MP4、WebM）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="w-alt">說明文字（選填）</label>
+            <input id="w-alt" type="text" maxlength="100">
+            <p class="hint">給看不到圖的人（螢幕閱讀器）聽的描述，不會顯示在畫面上；在這個列表裡會當成標題。</p>
+          </div>
+          <div class="field">
+            <label for="w-seconds">停留秒數（選填）</label>
+            <input id="w-seconds" type="number" min="1" max="600" step="0.5" placeholder="使用預設秒數">
+            <p class="hint">只對圖片與 GIF 有效；GIF 留空時是播完一輪再等 1 秒。影片一律播完。</p>
+          </div>
+          <div class="field">
+            <label for="w-expire-mode">顯示期限</label>
+            <select id="w-expire-mode">
+              <option value="forever">永久顯示（不會自動停止）</option>
+              <option value="until">到指定時間自動停止顯示</option>
+            </select>
+          </div>
+          <div id="w-expires-field" class="field" hidden>
+            <label for="w-expires">停止顯示的時間</label>
+            <input id="w-expires" type="datetime-local">
+            <p class="hint">以你這台電腦的時區為準。時間一到，前台就不再播放這一張（正開著網頁的訪客也會即時消失）。資料還留在這裡，可以改時間延長，或按列表上方的「清除已到期」刪掉。</p>
+          </div>
+          <div class="checks">
+            <label><input id="w-active" type="checkbox" checked> 顯示在前台</label>
+          </div>
+          <div class="actions">
+            <button id="wallSaveBtn" type="submit" class="btn">儲存</button>
+            <button id="wallCancelBtn" type="button" class="btn ghost" hidden>取消編輯</button>
+          </div>
+        </form>
+
+        <div class="list-head">
+          <h2 id="wallCount" class="list-title">圖片牆內容</h2>
+          <button id="wallPurgeBtn" type="button" class="btn ghost small" hidden>清除已到期</button>
+        </div>
+        <ol id="wallList" class="admin-list"></ol>
       </div>
 
       <div id="panel-set" role="tabpanel" aria-labelledby="tab-set" hidden>

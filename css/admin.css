@@ -51,6 +51,7 @@ code {
 }
 
 .tabs [role="tab"] {
+  position: relative;
   padding: 0.6rem 1.3rem;
   border: 0;
   border-radius: 3px 3px 0 0;
@@ -64,6 +65,29 @@ code {
 .tabs [role="tab"][aria-selected="true"] {
   background: var(--blue);
   color: #fff;
+}
+
+/* 分頁左上角的紅色圓形數字（新增了幾個待辦） */
+.tab-badge {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: var(--danger);
+  box-shadow: 0 0 0 2px var(--wall);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 900;
+  line-height: 22px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.tab-badge[hidden] {
+  display: none;
 }
 
 .tabs .tabs-link {
@@ -84,6 +108,8 @@ code {
 
 .field input[type="text"],
 .field input[type="password"],
+.field input[type="number"],
+.field input[type="datetime-local"],
 .field select,
 .field textarea {
   width: 100%;
@@ -107,6 +133,19 @@ code {
 
 .login-hint {
   margin-top: 16px;
+}
+
+.field input[type="number"] {
+  max-width: 200px;
+}
+
+.field input[type="datetime-local"] {
+  max-width: 280px;
+}
+
+/* .field 是 grid，會蓋掉 hidden 屬性，要明講 */
+.field[hidden] {
+  display: none;
 }
 
 .field input:focus,
@@ -362,6 +401,72 @@ code {
   overflow-wrap: anywhere;
 }
 
+/* 圖片牆管理 */
+.wall-note {
+  margin-bottom: 14px;
+}
+
+.list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin: 8px 0 12px;
+}
+
+.list-head .list-title {
+  margin: 0;
+}
+
+.list-head .btn[hidden] {
+  display: none;
+}
+
+.row.wall-row {
+  grid-template-columns: 124px minmax(0, 1fr) auto;
+  padding-left: 12px;
+}
+
+.wall-thumb {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--night);
+}
+
+.wall-thumb img,
+.wall-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.wall-thumb-bad {
+  color: #cfd6da;
+  font-size: 0.8125rem;
+}
+
+.wall-url {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.row-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.row-actions button:disabled:hover {
+  background: transparent;
+  color: var(--blue-ink);
+}
+
 /* 署名 */
 .who {
   display: grid;
@@ -529,6 +634,14 @@ code {
 
   .row.todo {
     grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .row.wall-row {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .wall-thumb {
+    width: 84px;
   }
 
   .thread {

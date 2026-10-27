@@ -19,13 +19,13 @@ import {
   writeBatch,
 } from "./firebase.js";
 import { parseImport, MAX_FILE_BYTES } from "./import.js";
+import { setupWallAdmin } from "./admin-wall.js";
 import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "./firebase-auth.js";
 import { adminEmailDomain, emailAliases } from "./firebase-config.js";
 import { DEFAULT_SETTINGS } from "./defaults.js";
 import {
   CATEGORIES,
   escapeHtml as esc,
-  formatDate,
   formatDateTime,
   padNo,
   parseLines,
@@ -36,7 +36,7 @@ import {
 
 const $ = (id) => document.getElementById(id);
 const VIEWS = ["loading", "setup", "login", "denied", "app"];
-const TABS = ["ann", "todo", "set"];
+const TABS = ["ann", "todo", "wall", "set"];
 
 const store = {
   get(key) {
@@ -159,6 +159,7 @@ function selectTab(name) {
     $(`tab-${t}`).setAttribute("aria-selected", String(on));
     $(`panel-${t}`).hidden = !on;
   }
+  if (name === "todo") updateTodoBadge(); // 進入待辦分頁就算看過，紅圈消失
 }
 for (const t of TABS) $(`tab-${t}`).addEventListener("click", () => selectTab(t));
 
@@ -407,7 +408,7 @@ function renderList() {
           ${a.pinned ? '<span class="badge pin">置頂</span>' : ""}
           ${a.commentsOpen ? "" : '<span class="badge off">已關閉留言</span>'}
           <span>${esc(a.category)}</span>
-          <time>${formatDate(a.date)}</time>
+          <time>${formatDateTime(a.date, true)}</time>
         </p>
       </div>
       <div class="row-actions">
@@ -641,7 +642,41 @@ $("todoForm").addEventListener("submit", async (e) => {
   if (ok) resetTodoForm();
 });
 
+/* ---------- 待辦的新增提示（分頁左上角的紅圈） ---------- */
+
+// 記在這台瀏覽器：看過的最新一則待辦的建立時間（毫秒）。比它新的待辦就算「新增」。
+const SEEN_KEY = "bball.todoSeen";
+let todoSeenAt = null;
+let todosLoaded = false;
+
+const todoTabActive = () => $("tab-todo").getAttribute("aria-selected") === "true";
+
+function markTodosSeen() {
+  const newest = todos.reduce((m, t) => Math.max(m, time(t)), 0);
+  todoSeenAt = Math.max(todoSeenAt ?? 0, newest);
+  store.set(SEEN_KEY, String(todoSeenAt));
+}
+
+function updateTodoBadge() {
+  const badge = $("todoBadge");
+  if (!todosLoaded) {
+    badge.hidden = true;
+    return;
+  }
+  if (todoSeenAt === null) {
+    const saved = store.get(SEEN_KEY);
+    if (saved !== "" && Number.isFinite(Number(saved))) todoSeenAt = Number(saved);
+    else markTodosSeen(); // 第一次使用：已經存在的待辦都算看過，不然會一次跳出一大串
+  }
+  if (todoTabActive()) markTodosSeen(); // 正在看待辦清單時新增的，也直接算看過
+  const n = todos.filter((t) => time(t) > todoSeenAt).length;
+  badge.hidden = n === 0;
+  badge.textContent = n > 99 ? "99+" : String(n);
+  $("tab-todo").setAttribute("aria-label", n ? `待辦事項，${n} 個新增` : "待辦事項");
+}
+
 function renderTodos() {
+  updateTodoBadge();
   const undone = todos.filter((t) => !t.done).length;
   $("todoCount").textContent = todos.length
     ? `待辦清單（未完成 ${undone} 項，共 ${todos.length} 項）`
@@ -667,7 +702,7 @@ function renderTodos() {
         <p class="row-meta">
           ${t.done ? '<span class="badge on">已完成</span>' : ""}
           <span>${esc(t.createdBy)}</span>
-          <time>${formatDate(t.date)}</time>
+          <time>${formatDateTime(t.date, true)}</time>
         </p>
       </div>
       <div class="row-actions">
@@ -712,6 +747,10 @@ $("todoList").addEventListener("click", async (e) => {
       break;
   }
 });
+
+/* ---------- 圖片牆 ---------- */
+
+const wallAdmin = setupWallAdmin({ run, toast, selectTab });
 
 /* ---------- 網站設定 ---------- */
 
@@ -776,6 +815,10 @@ function stopAll() {
   for (const key of [...openThreads]) closeThread(key);
   items = [];
   todos = [];
+  todosLoaded = false;
+  todoSeenAt = null;
+  $("todoBadge").hidden = true;
+  wallAdmin.stop();
 }
 
 function startApp(user) {
@@ -813,11 +856,13 @@ function startApp(user) {
     query(collection(db, "todos"), orderBy("createdAt", "desc")),
     (snap) => {
       todos = snap.docs.map((d) => normalizeTodo(d.id, d.data({ serverTimestamps: "estimate" })));
+      todosLoaded = true;
       renderTodos();
     },
     denied
   );
 
+  wallAdmin.start(denied);
   loadSettings();
 }
 

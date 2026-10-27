@@ -761,6 +761,108 @@ a {
   color: var(--danger);
 }
 
+/* 圖片牆：公告欄上方的輪播；沒有內容時整塊不顯示（hidden） */
+.wall {
+  margin-top: 20px;
+}
+
+.wall-frame {
+  position: relative;
+  width: 100%;
+  max-height: min(72vh, 560px);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--night);
+}
+
+.wall-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.wall-stage img,
+.wall-stage video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.wall-error {
+  margin: 0;
+  color: #cfd6da;
+}
+
+.wall-sound {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(18, 21, 24, 0.72);
+  color: #fff;
+  cursor: pointer;
+}
+
+.wall-sound:hover {
+  background: var(--blue);
+}
+
+.wall-sound:focus-visible,
+.wall-dot:focus-visible {
+  outline: 3px solid var(--ticket);
+  outline-offset: 2px;
+}
+
+.wall-sound svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.wall-sound[data-state="on"] .ico-off,
+.wall-sound[data-state="muted"] .ico-on {
+  display: none;
+}
+
+.wall-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.wall-dot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 2px solid var(--blue);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* 點擊範圍比看到的圓點大，手機比較好按 */
+.wall-dot::after {
+  position: absolute;
+  inset: -8px;
+  content: "";
+}
+
+.wall-dot[aria-current="true"] {
+  background: var(--blue);
+}
+
 /* 頁尾 */
 #top {
   padding-bottom: 40px;

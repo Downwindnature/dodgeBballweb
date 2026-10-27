@@ -23,6 +23,7 @@ import {
   safeUrl,
   zhNum,
 } from "./text.js";
+import { createWall } from "./wall.js";
 
 // 版面開關：目前只顯示公告欄。想把某個區塊加回來，把對應的值改成 true 即可。
 const LAYOUT = {
@@ -358,7 +359,7 @@ function renderList() {
             <span class="ticket-title">${escapeHtml(a.title)}</span>
             <span class="ticket-meta">
               <span class="tag ${CAT_CLASS[a.category]}">${escapeHtml(a.category)}</span>
-              <time>${formatDate(a.date)}</time>
+              <time>${formatDateTime(a.date, true)}</time>
             </span>
           </span>
         </summary>
@@ -494,6 +495,17 @@ if (!isConfigured) {
     doc(db, "site", "settings"),
     (snap) => renderSettings(snap.exists() ? snap.data() : {}),
     fail
+  );
+
+  // 圖片牆：沒有設定或讀不到時整塊不顯示，不影響公告
+  const wall = createWall(
+    { root: $("wall"), stage: $("wallStage"), dots: $("wallDots"), soundBtn: $("wallSound") },
+    { reduceMotion }
+  );
+  onSnapshot(
+    doc(db, "site", "wall"),
+    (snap) => wall.update(snap.exists() ? snap.data() : {}),
+    () => wall.update({})
   );
 
   onSnapshot(
