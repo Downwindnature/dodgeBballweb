@@ -68,7 +68,27 @@ export function setupUpload({ toast, onUploaded }) {
         ? `從手機或電腦上傳檔案的設定（GitHub）：已設定 ${s.parsed.owner}/${s.parsed.repo}`
         : "從手機或電腦上傳檔案的設定（GitHub）：尚未設定，第一次使用要先設定";
     $("gh-token").placeholder = s.token ? "已儲存（不會顯示）；要更換才需要重新貼上" : "貼上 github_pat_…";
+    paintPanel();
   }
+
+  // 設定好了就把整個設定面板收起來，只留一個小連結；還沒設定（或要重新設定）才顯示面板
+  function paintPanel() {
+    const s = settings();
+    const ready = !!(s.parsed && s.token);
+    $("ghBox").hidden = ready;
+    if (ready) $("ghBox").open = false;
+    $("ghShowBtn").hidden = !ready;
+  }
+
+  // 重新打開設定面板（點小連結、權杖失效、或還沒設定就選檔案時）
+  function showPanel() {
+    $("ghBox").hidden = false;
+    $("ghBox").open = true;
+    $("ghShowBtn").hidden = true;
+    $("ghBox").scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }
+
+  $("ghShowBtn").addEventListener("click", showPanel);
 
   function loadFields() {
     const s = settings();
@@ -112,7 +132,9 @@ export function setupUpload({ toast, onUploaded }) {
       keepToken(token, $("gh-remember").checked);
       $("gh-token").value = "";
       paintSummary();
-      ghMsg(`連線成功：${parsed.owner}/${parsed.repo}${r.branch ? `（預設分支 ${r.branch}）` : ""}。現在可以從手機或電腦上傳檔案了。`, "good");
+      const okText = `連線成功：${parsed.owner}/${parsed.repo}${r.branch ? `（預設分支 ${r.branch}）` : ""}。現在可以從手機或電腦上傳檔案了。`;
+      ghMsg(okText, "good");
+      upMsg(okText, "good"); // 面板會自動收起來，所以在檔案欄下面也顯示一次
       toast("GitHub 上傳設定已儲存");
     } catch (e) {
       ghMsg(e instanceof GhError ? e.message : "測試失敗，請稍後再試。", "bad");
@@ -130,6 +152,7 @@ export function setupUpload({ toast, onUploaded }) {
     $("gh-token").value = "";
     $("gh-remember").checked = false;
     paintSummary();
+    $("ghBox").open = true;
     ghMsg("已清除這台瀏覽器裡的 GitHub 設定與權杖。", "good");
   });
 
@@ -155,8 +178,7 @@ export function setupUpload({ toast, onUploaded }) {
     const s = settings();
     if (!s.parsed || !s.token) {
       upMsg("還沒設定 GitHub 上傳。請先展開上面的「從手機或電腦上傳檔案的設定」，貼上權杖後再選一次檔案。", "bad");
-      $("ghBox").open = true;
-      $("ghBox").scrollIntoView?.({ behavior: "smooth", block: "start" });
+      showPanel();
       resetPicker();
       return;
     }
@@ -172,8 +194,10 @@ export function setupUpload({ toast, onUploaded }) {
       const base64 = await readBase64(file);
       await uploadFile({ ...s.parsed, branch: s.branch, token: s.token, path, base64, message: `上傳圖片牆檔案 ${name}` });
     } catch (e) {
-      if (mine === session) upMsg(e instanceof GhError ? e.message : e?.message || "上傳失敗。", "bad");
+      const fixable = e instanceof GhError && [401, 403, 404].includes(e.status); // 權杖過期、權限不足、專案名稱不對
+      if (mine === session) upMsg((e instanceof GhError ? e.message : e?.message || "上傳失敗。") + (fixable ? " 已幫你打開上傳設定，可以更新後再試。" : ""), "bad");
       toast(e instanceof GhError ? e.message : "上傳失敗。", true);
+      if (fixable) showPanel();
       return;
     } finally {
       busy = false;

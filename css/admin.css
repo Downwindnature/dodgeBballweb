@@ -167,6 +167,30 @@ code {
   color: #1b6b4a;
 }
 
+/* 看起來像文字連結的按鈕 */
+.linkbtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--blue-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkbtn:hover {
+  color: var(--blue);
+}
+
+.linkbtn[hidden] {
+  display: none;
+}
+
+.hint:has(> .linkbtn[hidden]) {
+  display: none;
+}
+
 .gh-steps {
   margin: 0 0 16px;
   padding-left: 1.4rem;
