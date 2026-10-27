@@ -780,6 +780,8 @@ a {
   position: absolute;
   inset: 0;
   display: grid;
+  /* 格子固定成外框大小；否則列高會被圖片本身撐開（直式圖會變成好幾倍高），超出的部分就被裁掉 */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
 }
 

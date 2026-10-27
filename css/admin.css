@@ -483,6 +483,7 @@ code {
 
 .wall-thumb {
   display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr); /* 格子固定成縮圖框大小，直式圖才不會被撐高後裁掉 */
   place-items: center;
   width: 112px;
   aspect-ratio: 16 / 9;
