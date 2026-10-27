@@ -1,4 +1,4 @@
-// 後台「圖片牆」分頁裡的「從電腦上傳」：選檔案 → 存進 GitHub 專案的 media 資料夾 → 把路徑填進表單。
+// 後台「圖片牆」分頁裡的「從手機或電腦上傳」：選檔案 → 存進 GitHub 專案的 media 資料夾 → 把路徑填進表單。
 // 純邏輯在 github-upload.js；這裡只處理畫面、設定的保存與流程。
 
 import {
@@ -65,8 +65,8 @@ export function setupUpload({ toast, onUploaded }) {
     const s = settings();
     $("ghSummary").textContent =
       s.parsed && s.token
-        ? `從電腦上傳檔案的設定（GitHub）：已設定 ${s.parsed.owner}/${s.parsed.repo}`
-        : "從電腦上傳檔案的設定（GitHub）：尚未設定，第一次使用要先設定";
+        ? `從手機或電腦上傳檔案的設定（GitHub）：已設定 ${s.parsed.owner}/${s.parsed.repo}`
+        : "從手機或電腦上傳檔案的設定（GitHub）：尚未設定，第一次使用要先設定";
     $("gh-token").placeholder = s.token ? "已儲存（不會顯示）；要更換才需要重新貼上" : "貼上 github_pat_…";
   }
 
@@ -112,7 +112,7 @@ export function setupUpload({ toast, onUploaded }) {
       keepToken(token, $("gh-remember").checked);
       $("gh-token").value = "";
       paintSummary();
-      ghMsg(`連線成功：${parsed.owner}/${parsed.repo}${r.branch ? `（預設分支 ${r.branch}）` : ""}。現在可以從電腦上傳檔案了。`, "good");
+      ghMsg(`連線成功：${parsed.owner}/${parsed.repo}${r.branch ? `（預設分支 ${r.branch}）` : ""}。現在可以從手機或電腦上傳檔案了。`, "good");
       toast("GitHub 上傳設定已儲存");
     } catch (e) {
       ghMsg(e instanceof GhError ? e.message : "測試失敗，請稍後再試。", "bad");
@@ -154,7 +154,7 @@ export function setupUpload({ toast, onUploaded }) {
     }
     const s = settings();
     if (!s.parsed || !s.token) {
-      upMsg("還沒設定 GitHub 上傳。請先展開上面的「從電腦上傳檔案的設定」，貼上權杖後再選一次檔案。", "bad");
+      upMsg("還沒設定 GitHub 上傳。請先展開上面的「從手機或電腦上傳檔案的設定」，貼上權杖後再選一次檔案。", "bad");
       $("ghBox").open = true;
       $("ghBox").scrollIntoView?.({ behavior: "smooth", block: "start" });
       resetPicker();

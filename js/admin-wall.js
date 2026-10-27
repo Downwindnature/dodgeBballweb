@@ -50,7 +50,7 @@ export function setupWallAdmin({ run, toast, selectTab }) {
   let ticker = null; // 定時檢查有沒有新到期的張，讓列表上的狀態跟著更新
   let expiredKey = "";
 
-  // 從電腦上傳：上傳成功後把「media/檔名」填進表單，類型交給副檔名自動判斷
+  // 從手機或電腦上傳：上傳成功後把「media/檔名」填進表單，類型交給副檔名自動判斷
   const upload = setupUpload({
     toast,
     onUploaded(path) {

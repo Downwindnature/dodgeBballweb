@@ -162,8 +162,8 @@
         </form>
 
         <details id="ghBox" class="panel import-box">
-          <summary id="ghSummary">從電腦上傳檔案的設定（GitHub）</summary>
-          <p class="hint">要從電腦直接上傳圖片、GIF、MP4，需要先給這個後台一組「只能寫入這個專案」的 GitHub 權杖（Token）。檔案會存進專案的 <code>media</code> 資料夾，費用是零，但網站重新發布要等一兩分鐘。只在第一次或權杖過期時需要設定。不想設定的話，也可以直接在下面的欄位填網址。</p>
+          <summary id="ghSummary">從手機或電腦上傳檔案的設定（GitHub）</summary>
+          <p class="hint">要從手機或電腦直接上傳圖片、GIF、MP4，需要先給這個後台一組「只能寫入這個專案」的 GitHub 權杖（Token）。檔案會存進專案的 <code>media</code> 資料夾，費用是零，但網站重新發布要等一兩分鐘。只在第一次或權杖過期時需要設定。不想設定的話，也可以直接在下面的欄位填網址。</p>
           <ol class="gh-steps">
             <li>登入 GitHub → 右上角頭像 → <strong>Settings</strong> → 左下 <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Fine-grained tokens</strong> → <strong>Generate new token</strong>。</li>
             <li><strong>Repository access</strong> 選 <strong>Only select repositories</strong>，只選這個網站的專案。</li>
@@ -186,7 +186,7 @@
           <div class="checks">
             <label><input id="gh-remember" type="checkbox"> 記住權杖（關掉瀏覽器後仍保留）</label>
           </div>
-          <p class="hint">權杖等同密碼：拿到它的人可以修改這個專案裡的任何檔案（不只是 media 資料夾），請不要貼給別人。沒勾「記住」時只留在這個分頁，登出或關掉分頁就消失；勾了會存在這台瀏覽器裡，而且同一個 GitHub 帳號底下的其他 GitHub Pages 網站也讀得到，請只在自己的電腦上勾。</p>
+          <p class="hint">權杖等同密碼：拿到它的人可以修改這個專案裡的任何檔案（不只是 media 資料夾），請不要貼給別人。沒勾「記住」時只留在這個分頁，登出或關掉分頁就消失；勾了會存在這台瀏覽器裡，而且同一個 GitHub 帳號底下的其他 GitHub Pages 網站也讀得到，請只在自己的手機或電腦上勾。</p>
           <div class="actions">
             <button id="ghSaveBtn" type="button" class="btn">測試並儲存</button>
             <button id="ghClearBtn" type="button" class="btn ghost">清除設定</button>
@@ -196,9 +196,9 @@
 
         <form id="wallForm" class="panel" autocomplete="off">
           <h2 id="wallFormTitle">新增圖片或影片</h2>
-          <p class="hint wall-note">可以從電腦上傳檔案，也可以填網址（專案裡的 <code>media/檔名.jpg</code>，或 <code>https://</code> 開頭的網址）。MP4 本身有聲音的話，放在圖片牆上也會有聲音。前台沒有任何一張在顯示時，整個圖片牆不會出現。</p>
+          <p class="hint wall-note">可以從手機或電腦上傳檔案，也可以填網址（專案裡的 <code>media/檔名.jpg</code>，或 <code>https://</code> 開頭的網址）。MP4 本身有聲音的話，放在圖片牆上也會有聲音。前台沒有任何一張在顯示時，整個圖片牆不會出現。</p>
           <div class="field">
-            <label for="w-file">從電腦上傳（圖片、GIF、MP4，單檔 25 MB 以內）</label>
+            <label for="w-file">從手機或電腦上傳（圖片、GIF、MP4，單檔 25 MB 以內）</label>
             <input id="w-file" type="file" accept="image/*,video/*,.mp4,.webm,.m4v,.mov,.ogv">
             <p id="w-upload-msg" class="hint" role="status" aria-live="polite"></p>
           </div>
@@ -236,7 +236,7 @@
           <div id="w-expires-field" class="field" hidden>
             <label for="w-expires">停止顯示的時間</label>
             <input id="w-expires" type="datetime-local">
-            <p class="hint">以你這台電腦的時區為準。時間一到，前台就不再播放這一張（正開著網頁的訪客也會即時消失）。資料還留在這裡，可以改時間延長，或按列表上方的「清除已到期」刪掉。</p>
+            <p class="hint">以你目前使用的裝置（手機或電腦）的時區為準。時間一到，前台就不再播放這一張（正開著網頁的訪客也會即時消失）。資料還留在這裡，可以改時間延長，或按列表上方的「清除已到期」刪掉。</p>
           </div>
           <div class="checks">
             <label><input id="w-active" type="checkbox" checked> 顯示在前台</label>

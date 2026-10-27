@@ -55,6 +55,9 @@ const extOf = (name) => {
 export function checkFile(file) {
   if (!file) return "沒有選到檔案。";
   const ext = extOf(file.name);
+  if (ext === "heic" || ext === "heif") {
+    return "HEIC／HEIF 是 iPhone 的照片格式，網頁大多無法顯示。請改用 JPG 或 PNG；iPhone 可以到「設定 → 相機 → 格式」選「最相容」，之後拍的照片就是 JPG。";
+  }
   if (!ALLOWED_EXT.includes(ext)) {
     return `不支援這種檔案（${ext ? "." + ext : "沒有副檔名"}）。可以上傳：JPG、PNG、GIF、WEBP、AVIF、MP4、WEBM、MOV。`;
   }
