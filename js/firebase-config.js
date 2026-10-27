@@ -13,3 +13,11 @@ export const firebaseConfig = {
 // 所以登入時會把帳號轉成「帳號@下面這個網域」。這個信箱不需要真的存在，也不會寄信。
 // 在 Firebase 建立管理員使用者時，信箱就要用同一個網域（見 README）。
 export const adminEmailDomain = "bball-office.example.com";
+
+// 帳號在 Firebase 裡的信箱前綴如果和帳號本身不一樣，就列在這裡，登入時會先試這些信箱，
+// 都不行再試「帳號@網域」。帳號 dodgeBball 轉成小寫是 dodgebball（兩個 b），
+// 但先前的說明曾把信箱寫成 dodgeball（一個 b），所以兩種拼法都能登入。
+// 之後新增的管理員不需要填這個。
+export const emailAliases = {
+  dodgebball: ["dodgeball@bball-office.example.com"],
+};

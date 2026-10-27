@@ -1,12 +1,60 @@
-// 前台：讀取公告與網站設定並顯示（讀者不需要登入）。
+// 前台：讀取公告與網站設定並顯示，讀者可以在公告下留言（不需要登入）。
 
-import { isConfigured, db, collection, doc, onSnapshot, query, where } from "./firebase.js";
+import {
+  isConfigured,
+  db,
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  addDoc,
+  serverTimestamp,
+} from "./firebase.js";
 import { DEFAULT_SETTINGS, DEMO_SETTINGS, DEMO_ANNOUNCEMENTS } from "./defaults.js";
-import { CATEGORIES, escapeHtml, formatText, formatDate, padNo, safeUrl, zhNum } from "./text.js";
+import {
+  CATEGORIES,
+  escapeHtml,
+  formatText,
+  formatDate,
+  formatDateTime,
+  padNo,
+  safeUrl,
+  zhNum,
+} from "./text.js";
+
+// 版面開關：目前只顯示公告欄。想把某個區塊加回來，把對應的值改成 true 即可。
+const LAYOUT = {
+  hero: false, // 首屏：藍色招牌 + 最新公告叫號面板
+  extraSections: false, // 服務窗口、辦事須知、辦公時間與連結（沒填內容的不會出現）
+  footer: false, // 頁尾
+};
 
 const $ = (id) => document.getElementById(id);
 const CAT_CLASS = { 公告: "c-notice", 活動: "c-event", 須知: "c-rule", 緊急: "c-urgent" };
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// 讀者留言的暱稱與上次留言時間存在自己的瀏覽器；無痕模式存不了也沒關係
+const store = {
+  get(key) {
+    try {
+      return localStorage.getItem(key) || "";
+    } catch {
+      return "";
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* 略過 */
+    }
+  },
+};
+const NICK_KEY = "bball.nick";
+const LAST_KEY = "bball.lastComment";
+const COOLDOWN_MS = 20000; // 兩次留言至少間隔 20 秒（只能擋手滑連按，擋不了惡意程式）
 
 let items = []; // 已排序：置頂在前，其次號碼大到小
 let filter = "全部";
@@ -14,6 +62,10 @@ let latest = null; // 號碼最大的公告，顯示在叫號面板
 let calledShown = null; // 叫號面板目前顯示的公告 id
 let firstData = true;
 const openIds = new Set();
+
+const commentSubs = new Map(); // 公告 id → 取消訂閱函式（只訂閱展開中的公告）
+const commentData = new Map(); // 公告 id → { items, error }
+const drafts = new Map(); // 公告 id → 還沒送出的暱稱與內容，重畫清單時不會弄丟
 
 /* ---------- 資料整理 ---------- */
 
@@ -29,7 +81,18 @@ function normalize(id, d) {
     body: String(d.body ?? ""),
     category: CATEGORIES.includes(d.category) ? d.category : "公告",
     pinned: d.pinned === true,
+    commentsOpen: d.commentsOpen !== false, // 舊公告沒有這個欄位，視為開放
     no: Number.isInteger(d.no) ? d.no : 0,
+    date: toDate(d.createdAt),
+  };
+}
+
+function normalizeComment(id, d) {
+  return {
+    id,
+    name: String(d.name ?? ""),
+    text: String(d.text ?? ""),
+    fromAdmin: d.fromAdmin === true,
     date: toDate(d.createdAt),
   };
 }
@@ -61,9 +124,10 @@ function setItems(list) {
 /* ---------- 網站設定 ---------- */
 
 function toggleSection(id, on) {
-  $(id).hidden = !on;
+  const visible = LAYOUT.extraSections && on;
+  $(id).hidden = !visible;
   const link = document.querySelector(`[data-nav="${id}"]`);
-  if (link) link.hidden = !on;
+  if (link) link.hidden = !visible;
 }
 
 function renderSettings(raw) {
@@ -172,10 +236,113 @@ function renderFilters() {
     .join("");
 }
 
+// 每則公告底下的留言區骨架；留言內容由 paintComments 填入
+function commentsSection(a) {
+  if (!isConfigured) return ""; // 範例模式沒有資料庫，不顯示留言
+  const id = escapeHtml(a.id);
+  const form = a.commentsOpen
+    ? `<form class="cform" data-id="${id}" autocomplete="off">
+        <div class="cform-field">
+          <label for="cn-${id}">暱稱</label>
+          <input id="cn-${id}" name="nick" type="text" maxlength="20" required>
+        </div>
+        <div class="cform-field">
+          <label for="ct-${id}">留言內容</label>
+          <textarea id="ct-${id}" name="text" rows="3" maxlength="500" required></textarea>
+        </div>
+        <input class="hp" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <p class="cform-hint">請不要留下電話、住址等個人資料。留言會公開顯示，群主可以刪除。</p>
+        <div class="cform-actions">
+          <button class="btn" type="submit">送出留言</button>
+          <span class="cform-msg" role="status"></span>
+        </div>
+      </form>`
+    : '<p class="comments-closed">這則公告已關閉留言。</p>';
+  return `<section class="comments" aria-label="留言">
+      <h3 class="comments-title" id="ctitle-${id}">留言</h3>
+      <ol class="comment-list" id="clist-${id}"></ol>
+      ${form}
+    </section>`;
+}
+
+function commentHtml(c) {
+  return `<li class="comment${c.fromAdmin ? " is-admin" : ""}">
+      <p class="comment-head">
+        <span class="comment-name">${escapeHtml(c.name)}</span>
+        ${c.fromAdmin ? '<span class="comment-badge">群主</span>' : ""}
+        <time>${formatDateTime(c.date)}</time>
+      </p>
+      <p class="comment-text">${escapeHtml(c.text)}</p>
+    </li>`;
+}
+
+// 只更新某則公告的留言清單，不會動到正在輸入的表單
+function paintComments(id) {
+  const titleEl = $(`ctitle-${id}`);
+  const listEl = $(`clist-${id}`);
+  if (!titleEl || !listEl) return;
+  const st = commentData.get(id);
+  if (!st) {
+    titleEl.textContent = "留言";
+    listEl.innerHTML = "";
+  } else if (st.error) {
+    titleEl.textContent = "留言";
+    listEl.innerHTML = '<li class="comment-empty">留言暫時無法載入。</li>';
+  } else {
+    titleEl.textContent = `留言（${st.items.length}）`;
+    listEl.innerHTML = st.items.length
+      ? st.items.map(commentHtml).join("")
+      : '<li class="comment-empty">還沒有留言。</li>';
+  }
+}
+
+// 只訂閱「展開中」的公告的留言；收合或公告消失就取消訂閱，節省讀取次數
+function syncCommentSubs() {
+  if (!isConfigured) return;
+  const wanted = new Set([...openIds].filter((id) => items.some((a) => a.id === id)));
+
+  for (const [id, unsub] of commentSubs) {
+    if (wanted.has(id)) continue;
+    unsub();
+    commentSubs.delete(id);
+    commentData.delete(id);
+  }
+  for (const id of wanted) {
+    if (commentSubs.has(id)) continue;
+    const unsub = onSnapshot(
+      query(collection(db, "announcements", id, "comments"), orderBy("createdAt", "asc")),
+      (snap) => {
+        commentData.set(id, {
+          items: snap.docs.map((d) =>
+            normalizeComment(d.id, d.data({ serverTimestamps: "estimate" }))
+          ),
+        });
+        paintComments(id);
+      },
+      () => {
+        commentData.set(id, { items: [], error: true });
+        paintComments(id);
+      }
+    );
+    commentSubs.set(id, unsub);
+  }
+}
+
+function afterRender() {
+  for (const form of $("list").querySelectorAll("form.cform")) {
+    const d = drafts.get(form.dataset.id);
+    form.elements.nick.value = d?.nick ?? store.get(NICK_KEY);
+    form.elements.text.value = d?.text ?? "";
+  }
+  for (const id of openIds) paintComments(id);
+  syncCommentSubs();
+}
+
 function renderList() {
   const shown = filter === "全部" ? items : items.filter((a) => a.category === filter);
   if (!shown.length) {
     $("list").innerHTML = '<li><p class="empty">目前沒有公告。有新公告時會顯示在這裡。</p></li>';
+    afterRender();
     return;
   }
   $("list").innerHTML = shown
@@ -196,10 +363,12 @@ function renderList() {
           </span>
         </summary>
         <div class="ticket-body">${formatText(a.body)}</div>
+        ${commentsSection(a)}
       </details>
     </li>`
     )
     .join("");
+  afterRender();
 }
 
 function focusAnnouncement(id) {
@@ -228,9 +397,71 @@ $("list").addEventListener(
     if (!id) return;
     if (e.target.open) openIds.add(id);
     else openIds.delete(id);
+    syncCommentSubs();
   },
   true
 );
+
+// 記住還沒送出的留言，清單重畫時再放回去
+$("list").addEventListener("input", (e) => {
+  const form = e.target.closest?.("form.cform");
+  if (!form) return;
+  drafts.set(form.dataset.id, {
+    nick: form.elements.nick.value,
+    text: form.elements.text.value,
+  });
+});
+
+$("list").addEventListener("submit", async (e) => {
+  const form = e.target.closest("form.cform");
+  if (!form) return;
+  e.preventDefault();
+
+  const id = form.dataset.id;
+  const msg = form.querySelector(".cform-msg");
+  const say = (text, bad = false) => {
+    msg.textContent = text;
+    msg.classList.toggle("bad", bad);
+  };
+
+  if (form.elements.website.value) return; // 只有機器人會填這個隱藏欄位
+  const nick = form.elements.nick.value.trim();
+  const text = form.elements.text.value.trim();
+  if (!nick || !text) {
+    say("請填寫暱稱和留言內容。", true);
+    return;
+  }
+  const wait = Number(store.get(LAST_KEY)) + COOLDOWN_MS - Date.now();
+  if (wait > 0) {
+    say(`請等 ${Math.ceil(wait / 1000)} 秒後再留言。`, true);
+    return;
+  }
+
+  const btn = form.querySelector("button[type=submit]");
+  btn.disabled = true;
+  try {
+    await addDoc(collection(db, "announcements", id, "comments"), {
+      name: nick,
+      text,
+      fromAdmin: false,
+      createdAt: serverTimestamp(),
+    });
+    store.set(NICK_KEY, nick);
+    store.set(LAST_KEY, String(Date.now()));
+    form.elements.text.value = "";
+    drafts.set(id, { nick, text: "" });
+    say("已送出留言。");
+  } catch (err) {
+    say(
+      err?.code === "permission-denied"
+        ? "留言失敗：這則公告可能已關閉留言。"
+        : "留言失敗，請稍後再試。",
+      true
+    );
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 $("called").addEventListener("click", (e) => {
   if (!latest) return;
@@ -244,6 +475,9 @@ function showNotice(text) {
 }
 
 /* ---------- 啟動 ---------- */
+
+$("hero").hidden = !LAYOUT.hero;
+$("foot").hidden = !LAYOUT.footer;
 
 if (!isConfigured) {
   showNotice("尚未連接資料庫，目前顯示的是範例內容。請先填寫 js/firebase-config.js。");

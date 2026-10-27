@@ -3,12 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 只有這個使用者 UID 能寫入。請把下面的 YOUR_ADMIN_UID 換成管理員帳號的 UID
-    // （Firebase 控制台 → Authentication → Users → 使用者 UID 那一欄）。
-    // 用 UID 而不是信箱：就算有人用同樣格式的信箱去註冊，也拿不到寫入權限。
+    // 只有這個使用者 UID 是管理員（Firebase 控制台 → Authentication → Users → 使用者 UID）。
+    // 用 UID 而不是信箱：就算有人用同樣格式的信箱去註冊，也拿不到管理員權限。
     function isAdmin() {
       return request.auth != null
-        && request.auth.uid == 'YOUR_ADMIN_UID';
+        && request.auth.uid == 'ULYB6kVOtNMmYFgZMjZvyyHCmeS2';
     }
 
     function validAnnouncement(d) {
@@ -17,7 +16,36 @@ service cloud.firestore {
         && d.category in ['公告', '活動', '須知', '緊急']
         && d.pinned is bool
         && d.published is bool
-        && d.no is int;
+        && d.no is int
+        && (!('commentsOpen' in d) || d.commentsOpen is bool);
+    }
+
+    function validTodo(d) {
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 200
+        && d.detail is string && d.detail.size() <= 2000
+        && d.done is bool
+        && d.createdBy is string && d.createdBy.size() <= 20;
+    }
+
+    // 留言格式：欄位固定，暱稱 1–20 字，內容 1–500 字，時間必須是伺服器時間。
+    // byAdmin 為 true 代表群主的回覆（前台會顯示「群主」標章），讀者留言只能是 false。
+    function validComment(d, byAdmin) {
+      return d.keys().hasOnly(['name', 'text', 'fromAdmin', 'createdAt'])
+        && d.keys().hasAll(['name', 'text', 'fromAdmin', 'createdAt'])
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 20
+        && d.text is string && d.text.size() >= 1 && d.text.size() <= 500
+        && d.fromAdmin == byAdmin
+        && d.createdAt == request.time;
+    }
+
+    function announcementPublished(aid) {
+      return get(/databases/$(database)/documents/announcements/$(aid)).data.published == true;
+    }
+
+    // 已發布，而且沒有被關閉留言（舊公告沒有 commentsOpen 欄位，視為開放）
+    function announcementOpen(aid) {
+      return announcementPublished(aid)
+        && get(/databases/$(database)/documents/announcements/$(aid)).data.get('commentsOpen', true) == true;
     }
 
     // 公告：任何人只能讀「已發布」的；草稿只有管理員看得到
@@ -25,6 +53,26 @@ service cloud.firestore {
       allow read: if resource.data.published == true || isAdmin();
       allow create, update: if isAdmin() && validAnnouncement(request.resource.data);
       allow delete: if isAdmin();
+
+      // 公告留言：任何人可以讀已發布公告的留言，也可以在開放留言的公告下新增；
+      // 不能修改；只有管理員能刪除。
+      match /comments/{commentId} {
+        allow read: if isAdmin() || announcementPublished(id);
+        allow create: if (isAdmin() && validComment(request.resource.data, true))
+                      || (announcementOpen(id) && validComment(request.resource.data, false));
+        allow delete: if isAdmin();
+      }
+    }
+
+    // 待辦事項與其留言：只有管理員看得到、寫得進去
+    match /todos/{todoId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && validTodo(request.resource.data);
+
+      match /comments/{commentId} {
+        allow read, delete: if isAdmin();
+        allow create: if isAdmin() && validComment(request.resource.data, true);
+      }
     }
 
     // 網站設定：任何人可讀，只有管理員能改

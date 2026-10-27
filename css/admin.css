@@ -146,42 +146,6 @@ code {
   gap: 10px;
 }
 
-.btn {
-  padding: 0.55rem 1.3rem;
-  border: 2px solid var(--blue);
-  border-radius: 2px;
-  background: var(--blue);
-  color: #fff;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn:hover {
-  background: var(--blue-ink);
-  border-color: var(--blue-ink);
-}
-
-.btn.ghost {
-  background: transparent;
-  color: var(--blue-ink);
-}
-
-.btn.ghost:hover {
-  background: var(--blue);
-  color: #fff;
-}
-
-.btn.small {
-  padding: 0.2rem 0.8rem;
-  font-size: 0.9375rem;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
 .form-msg {
   margin: 14px 0 0;
   color: var(--danger);
@@ -301,6 +265,223 @@ code {
   color: #fff;
 }
 
+/* 批次匯入 */
+.import-box {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.import-box > summary {
+  color: var(--blue-ink);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.import-box[open] > summary {
+  margin-bottom: 12px;
+}
+
+.import-box input[type="file"] {
+  max-width: 100%;
+  font: inherit;
+}
+
+.import-summary {
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+
+.import-summary.bad {
+  color: var(--danger);
+}
+
+.import-msgs {
+  margin: 0 0 12px;
+  padding-left: 1.2rem;
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.import-msgs:empty {
+  display: none;
+}
+
+.import-msgs .err {
+  color: var(--danger);
+}
+
+.import-msgs .warn {
+  color: #7a5400;
+}
+
+.import-skip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.import-list {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  margin: 0 0 16px;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.import-list li {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: start;
+  padding: 10px 12px 10px 0;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #fff;
+}
+
+.import-list li.is-skipped {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.import-no {
+  color: var(--blue-ink);
+  font-weight: 900;
+  text-align: center;
+}
+
+.import-excerpt {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 署名 */
+.who {
+  display: grid;
+  grid-template-columns: auto minmax(0, 220px);
+  align-items: center;
+  gap: 4px 12px;
+  margin-bottom: 18px;
+}
+
+.who label {
+  font-weight: 700;
+}
+
+.who input {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.who input:focus {
+  border-color: var(--blue);
+}
+
+.who .hint {
+  grid-column: 1 / -1;
+}
+
+.todo-note {
+  margin-bottom: 14px;
+}
+
+/* 待辦事項 */
+.row.todo {
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+}
+
+.todo-check {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.todo-check input {
+  width: 1.4rem;
+  height: 1.4rem;
+  cursor: pointer;
+}
+
+.todo-detail {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.row.is-done {
+  background: #f1f3f2;
+}
+
+.row.is-done .row-title {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* 留言串（公告與待辦共用，留言樣式沿用 style.css） */
+.thread {
+  grid-column: 1 / -1;
+  margin: 8px 0 0 12px;
+  padding: 12px 14px;
+  border-top: 1px dashed var(--line);
+}
+
+.thread[hidden] {
+  display: none;
+}
+
+.thread-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  justify-items: start;
+}
+
+.thread-form textarea {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.thread-form textarea:focus {
+  border-color: var(--blue);
+}
+
+.comment-del {
+  margin-left: auto;
+  padding: 0 0.6rem;
+  border: 1px solid var(--danger);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--danger);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.comment-del:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
 /* 提示訊息 */
 .toast {
   position: fixed;
@@ -344,5 +525,18 @@ code {
 
   .row-no {
     font-size: 1.25rem;
+  }
+
+  .row.todo {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .thread {
+    margin-left: 0;
+    padding: 12px 4px;
+  }
+
+  .who {
+    grid-template-columns: 1fr;
   }
 }

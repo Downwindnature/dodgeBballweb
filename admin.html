@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>躲B球辦事處後台</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23e0392d'/%3E%3Cpath d='M3 11c9 4 17 4 26 0M3 21c9-4 17-4 26 0' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%237d1d16' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
@@ -16,14 +16,7 @@
 <body>
   <header class="top">
     <div class="wrap">
-      <a class="brand" href="index.html">
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <circle cx="16" cy="16" r="14" fill="#e0392d"/>
-          <path d="M3 11c9 4 17 4 26 0M3 21c9-4 17-4 26 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-          <circle cx="16" cy="16" r="14" fill="none" stroke="#7d1d16" stroke-width="2"/>
-        </svg>
-        <span>躲B球辦事處後台</span>
-      </a>
+      <a class="brand" href="index.html"><span>躲B球辦事處後台</span></a>
       <div id="userBox" class="userbox" hidden>
         <span id="userEmail"></span>
         <button id="logoutBtn" type="button" class="btn ghost small">登出</button>
@@ -64,8 +57,15 @@
     </section>
 
     <section id="view-app" hidden>
+      <div class="who">
+        <label for="whoName">署名</label>
+        <input id="whoName" type="text" maxlength="20" placeholder="群主" autocomplete="off">
+        <p class="hint">新增待辦與回覆留言時會附上這個名字，只記在這台瀏覽器。不填就署名「群主」。</p>
+      </div>
+
       <div class="tabs">
         <button id="tab-ann" type="button" role="tab" aria-selected="true" aria-controls="panel-ann">公告管理</button>
+        <button id="tab-todo" type="button" role="tab" aria-selected="false" aria-controls="panel-todo">待辦事項</button>
         <button id="tab-set" type="button" role="tab" aria-selected="false" aria-controls="panel-set">網站設定</button>
         <a class="tabs-link" href="index.html" target="_blank" rel="noopener">開啟前台</a>
       </div>
@@ -94,6 +94,7 @@
           <div class="checks">
             <label><input id="f-pinned" type="checkbox"> 置頂</label>
             <label><input id="f-published" type="checkbox" checked> 發布（取消勾選就是草稿，讀者看不到）</label>
+            <label><input id="f-comments" type="checkbox" checked> 開放讀者留言</label>
           </div>
           <div class="actions">
             <button id="saveBtn" type="submit" class="btn">儲存公告</button>
@@ -101,8 +102,49 @@
           </div>
         </form>
 
+        <details id="importBox" class="panel import-box">
+          <summary>批次匯入公告（上傳 JSON 檔）</summary>
+          <p class="hint">一次上傳多則公告。檔案格式見 README；也可以把文字貼給 Claude，請它轉成這種 JSON 檔。公告依檔案裡的順序編號，最後一則的編號最大，會顯示在最上面。</p>
+          <div class="field">
+            <label for="importFile">選擇 JSON 檔</label>
+            <input id="importFile" type="file" accept=".json,application/json">
+          </div>
+          <div id="importPreview" hidden>
+            <p id="importSummary" class="import-summary" role="status"></p>
+            <ul id="importMsgs" class="import-msgs"></ul>
+            <label class="import-skip"><input id="importSkip" type="checkbox" checked> 略過標題與現有公告相同的項目</label>
+            <ol id="importList" class="import-list"></ol>
+            <div class="actions">
+              <button id="importConfirm" type="button" class="btn">確認匯入</button>
+              <button id="importCancel" type="button" class="btn ghost">取消</button>
+            </div>
+          </div>
+        </details>
+
         <h2 class="list-title">所有公告</h2>
         <ul id="annList" class="admin-list"></ul>
+      </div>
+
+      <div id="panel-todo" role="tabpanel" aria-labelledby="tab-todo" hidden>
+        <form id="todoForm" class="panel" autocomplete="off">
+          <h2 id="todoFormTitle">新增待辦事項</h2>
+          <p class="hint todo-note">待辦事項只有登入後台的人看得到，前台讀者看不到。</p>
+          <div class="field">
+            <label for="t-title">待辦事項</label>
+            <input id="t-title" type="text" maxlength="200" required>
+          </div>
+          <div class="field">
+            <label for="t-detail">詳細說明（選填）</label>
+            <textarea id="t-detail" rows="3" maxlength="2000"></textarea>
+          </div>
+          <div class="actions">
+            <button id="todoSaveBtn" type="submit" class="btn">儲存待辦</button>
+            <button id="todoCancelBtn" type="button" class="btn ghost" hidden>取消編輯</button>
+          </div>
+        </form>
+
+        <h2 id="todoCount" class="list-title">待辦清單</h2>
+        <ul id="todoList" class="admin-list"></ul>
       </div>
 
       <div id="panel-set" role="tabpanel" aria-labelledby="tab-set" hidden>

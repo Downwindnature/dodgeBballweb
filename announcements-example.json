@@ -1,0 +1,20 @@
+{
+  "announcements": [
+    {
+      "title": "範例：週末練習場地通知",
+      "category": "活動",
+      "body": "本週六下午 2:00 在公園球場集合。\n請自備水壺，下雨改期另行通知。",
+      "pinned": false,
+      "published": true,
+      "commentsOpen": true
+    },
+    {
+      "title": "範例：辦事須知（草稿，不會顯示在前台）",
+      "category": "須知",
+      "body": "1. 進場請先簽到。\n2. 球請輕拋，不要朝頭部丟。",
+      "pinned": true,
+      "published": false,
+      "commentsOpen": false
+    }
+  ]
+}

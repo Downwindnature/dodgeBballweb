@@ -114,12 +114,6 @@ a {
   text-decoration: none;
 }
 
-.brand svg {
-  width: 30px;
-  height: 30px;
-  flex: none;
-}
-
 .top-right {
   display: flex;
   flex-wrap: wrap;
@@ -590,9 +584,190 @@ a {
   color: #fff;
 }
 
+/* 按鈕（前台留言表單與後台共用） */
+.btn {
+  padding: 0.55rem 1.3rem;
+  border: 2px solid var(--blue);
+  border-radius: 2px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: var(--blue-ink);
+  background: var(--blue-ink);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--blue-ink);
+}
+
+.btn.ghost:hover {
+  background: var(--blue);
+  color: #fff;
+}
+
+.btn.small {
+  padding: 0.2rem 0.8rem;
+  font-size: 0.9375rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* 留言（前台公告下方與後台共用） */
+.comments {
+  margin: 4px 18px 18px calc(var(--stub) + 18px);
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+
+.comments-title,
+.thread-title {
+  margin: 0 0 8px;
+  color: var(--blue-ink);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.comment-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment {
+  padding: 8px 12px;
+  border-left: 4px solid var(--line);
+  border-radius: 0 3px 3px 0;
+  background: #f3f5f4;
+}
+
+.comment.is-admin {
+  border-left-color: var(--blue);
+  background: #e8eff6;
+}
+
+.comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.comment-name {
+  color: var(--ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.comment-badge {
+  padding: 0 0.5rem;
+  border-radius: 2px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.comment-text {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.comment-empty,
+.comments-closed {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.comments-closed {
+  margin-top: 12px;
+}
+
+.cform {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.cform-field {
+  display: grid;
+  gap: 4px;
+}
+
+.cform label {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.cform input[type="text"],
+.cform textarea {
+  width: 100%;
+  max-width: 36em;
+  padding: 0.5rem 0.65rem;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.cform input[type="text"]:focus,
+.cform textarea:focus {
+  border-color: var(--blue);
+}
+
+.cform .hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.cform-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.cform-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cform-msg {
+  font-weight: 500;
+}
+
+.cform-msg.bad {
+  color: var(--danger);
+}
+
 /* 頁尾 */
+#top {
+  padding-bottom: 40px;
+}
+
 .foot {
-  margin-top: 56px;
+  margin-top: 16px;
   padding: 20px 0 28px;
   background: var(--blue-ink);
   color: #c9d6e2;
@@ -636,6 +811,11 @@ a {
 
   .ticket-body {
     padding-left: calc(var(--stub) + 14px);
+  }
+
+  .comments {
+    margin-right: 14px;
+    margin-left: 14px;
   }
 
   .article {
