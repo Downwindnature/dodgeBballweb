@@ -3,10 +3,10 @@
 // 還沒填寫時，網站會顯示範例內容，方便先預覽版面。
 
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyD3hO7dQazm66P4Ug2mKSmftv9Qo0GyKu0",
+  authDomain: "dogballbballweb.firebaseapp.com",
+  projectId: "dogballbballweb",
+  appId: "1:226732926297:web:4477e7f84c9d789d4b9848",
 };
 
 // 後台用「帳號＋密碼」登入。Firebase 的帳號密碼登入需要信箱格式，
