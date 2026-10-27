@@ -1,0 +1,644 @@
+/* 躲B球辦事處 — 基礎與前台樣式
+   意象：公所服務大廳。牆面灰、公所藍招牌、紅色點陣叫號面板、號碼牌式公告。 */
+
+:root {
+  --wall: #e4e8e7;
+  --paper: #fbfbf8;
+  --blue: #17456e;
+  --blue-ink: #0f3050;
+  --night: #121518;
+  --led-red: #ff4a3d;
+  --led-amber: #ffb020;
+  --ticket: #f5c73b;
+  --ink: #1b2329;
+  --muted: #5b676e;
+  --line: #b9c2c5;
+  --danger: #c62d22;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-led: "Doto", "Noto Sans TC", ui-monospace, monospace;
+  --max: 1080px;
+  --stub: 84px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--wall);
+  color: var(--ink);
+  font: 400 1rem/1.75 var(--font-body);
+}
+
+a {
+  color: var(--blue);
+}
+
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skip {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  z-index: 10;
+  padding: 0.5rem 1rem;
+  background: var(--paper);
+}
+
+.skip:focus {
+  left: 0;
+}
+
+.wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 通知列 */
+.notice {
+  margin: 0;
+  padding: 0.5rem 20px;
+  background: var(--ticket);
+  color: #2b2200;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* 頁首 */
+.top {
+  background: var(--paper);
+  border-bottom: 4px solid var(--blue);
+}
+
+.top .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-height: 60px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--blue-ink);
+  font-size: 1.125rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.brand svg {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+
+.top-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.enter {
+  display: inline-block;
+  padding: 0.4rem 1.1rem;
+  border: 2px solid var(--blue);
+  border-radius: 2px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.enter:hover {
+  border-color: var(--blue-ink);
+  background: var(--blue-ink);
+}
+
+.nav a {
+  padding: 0.5rem 0.75rem;
+  border-radius: 2px;
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav a:hover {
+  background: var(--wall);
+}
+
+/* 首屏：招牌 + 叫號面板 */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+  padding: 48px 0 40px;
+}
+
+.sign {
+  padding: 30px 34px 26px;
+  border-radius: 3px;
+  background: var(--blue);
+  color: #fff;
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: -10px;
+}
+
+.sign h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5.5vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.sign .tagline {
+  margin: 0.75rem 0 0;
+  color: #d5e3f0;
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+
+.welcome {
+  max-width: 34em;
+  margin: 20px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.called {
+  display: block;
+  overflow: hidden;
+  border: 6px solid #2a3035;
+  border-radius: 6px;
+  background: var(--night);
+  box-shadow: 0 2px 0 #0a0c0e, 0 14px 24px -14px rgba(0, 0, 0, 0.55);
+  color: var(--led-amber);
+  text-decoration: none;
+}
+
+.called-head {
+  margin: 0;
+  padding: 6px 18px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.called-body {
+  padding: 16px 22px 20px;
+}
+
+.called-no {
+  margin: 0;
+  color: var(--led-red);
+  font-family: var(--font-led);
+  font-size: clamp(4rem, 11vw, 6.5rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-shadow: 0 0 14px rgba(255, 74, 61, 0.45);
+}
+
+.called-title {
+  display: -webkit-box;
+  margin: 12px 0 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--led-amber);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.called-date {
+  margin: 8px 0 0;
+  color: #9aa5ab;
+  font-size: 0.875rem;
+}
+
+.called:hover .called-title {
+  text-decoration: underline;
+}
+
+/* 各區塊 */
+.section {
+  padding: 32px 0 8px;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+}
+
+.plate {
+  display: inline-block;
+  margin: 0;
+  padding: 0.25rem 1.1rem;
+  border-radius: 2px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 1.375rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filters button {
+  padding: 0.2rem 0.9rem;
+  border: 2px solid var(--blue);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--blue-ink);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.filters button[aria-pressed="true"] {
+  background: var(--blue);
+  color: #fff;
+}
+
+/* 公告：號碼牌式的一列 */
+.tickets {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ticket {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper);
+  scroll-margin-top: 16px;
+}
+
+.ticket summary {
+  display: grid;
+  grid-template-columns: var(--stub) minmax(0, 1fr);
+  list-style: none;
+  cursor: pointer;
+}
+
+.ticket summary::-webkit-details-marker {
+  display: none;
+}
+
+.stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 6px;
+  border-right: 2px dashed var(--line);
+  background: #eff2f1;
+}
+
+.stub::before,
+.stub::after {
+  content: "";
+  position: absolute;
+  right: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--wall);
+}
+
+.stub::before {
+  top: -9px;
+}
+
+.stub::after {
+  bottom: -9px;
+}
+
+.ticket.is-pinned .stub {
+  background: var(--ticket);
+}
+
+.stub-no {
+  color: var(--blue-ink);
+  font-family: var(--font-led);
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.stub-pin {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ticket-main {
+  position: relative;
+  padding: 12px 46px 12px 18px;
+}
+
+.ticket-main::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.ticket[open] .ticket-main::after {
+  transform: translateY(-30%) rotate(-135deg);
+}
+
+.ticket-title {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.ticket-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.tag {
+  padding: 0 0.55rem;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.tag.c-notice {
+  color: var(--blue);
+}
+
+.tag.c-event {
+  color: #1b6b4a;
+}
+
+.tag.c-rule {
+  color: #7a5400;
+}
+
+.tag.c-urgent {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.ticket-body {
+  padding: 2px 18px 16px calc(var(--stub) + 18px);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.empty {
+  margin: 0;
+  padding: 26px 18px;
+  border: 1px dashed var(--line);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--muted);
+}
+
+/* 服務窗口 */
+.windows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.window {
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 3px 3px;
+  background: var(--paper);
+}
+
+.window-sign {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--blue);
+  color: #fff;
+}
+
+.window-no {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.3rem;
+  border-radius: 2px;
+  background: #fff;
+  color: var(--blue-ink);
+  font-family: var(--font-led);
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.window-title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.window-desc {
+  margin: 0;
+  padding: 12px 14px 14px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* 辦事須知（條文） */
+.articles {
+  max-width: 46em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.article {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.article-no {
+  color: var(--blue-ink);
+  font-weight: 900;
+}
+
+.article-text {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* 辦公時間與連結 */
+.info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 32px;
+}
+
+.info h3 {
+  margin: 0 0 8px;
+  color: var(--blue-ink);
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.info p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.links a {
+  display: inline-block;
+  padding: 0.35rem 0.9rem;
+  border: 2px solid var(--blue);
+  border-radius: 2px;
+  color: var(--blue-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.links a:hover {
+  background: var(--blue);
+  color: #fff;
+}
+
+/* 頁尾 */
+.foot {
+  margin-top: 56px;
+  padding: 20px 0 28px;
+  background: var(--blue-ink);
+  color: #c9d6e2;
+  font-size: 0.9375rem;
+}
+
+.foot .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.foot p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --stub: 64px;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding: 28px 0 24px;
+  }
+
+  .sign {
+    padding: 24px 24px 20px;
+  }
+
+  .stub-no {
+    font-size: 1.4rem;
+  }
+
+  .ticket-main {
+    padding-left: 14px;
+  }
+
+  .ticket-body {
+    padding-left: calc(var(--stub) + 14px);
+  }
+
+  .article {
+    grid-template-columns: 4.5em minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>躲B球辦事處後台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23e0392d'/%3E%3Cpath d='M3 11c9 4 17 4 26 0M3 21c9-4 17-4 26 0' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%237d1d16' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="index.html">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" fill="#e0392d"/>
+          <path d="M3 11c9 4 17 4 26 0M3 21c9-4 17-4 26 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#7d1d16" stroke-width="2"/>
+        </svg>
+        <span>躲B球辦事處後台</span>
+      </a>
+      <div id="userBox" class="userbox" hidden>
+        <span id="userEmail"></span>
+        <button id="logoutBtn" type="button" class="btn ghost small">登出</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap admin-main">
+    <p id="view-loading" class="empty">載入中…</p>
+
+    <section id="view-setup" class="panel" hidden>
+      <h2>還沒連接 Firebase</h2>
+      <p>請先把 Firebase 的設定貼進 <code>js/firebase-config.js</code>，再重新整理這個頁面。步驟寫在 README.md。</p>
+    </section>
+
+    <section id="view-login" class="panel login-panel" hidden>
+      <h2>進入後台</h2>
+      <form id="loginForm">
+        <div class="field">
+          <label for="l-user">帳號</label>
+          <input id="l-user" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        </div>
+        <div class="field">
+          <label for="l-pass">密碼</label>
+          <input id="l-pass" type="password" autocomplete="current-password" required>
+        </div>
+        <button id="loginBtn" type="submit" class="btn">登入</button>
+        <p id="loginMsg" class="form-msg" role="alert" hidden></p>
+      </form>
+      <p class="hint login-hint">只有群主能進入後台。</p>
+    </section>
+
+    <section id="view-denied" class="panel" hidden>
+      <h2>這個帳號沒有後台權限</h2>
+      <p>目前登入的帳號是 <strong id="deniedEmail"></strong>。請登出後，改用群主的帳號登入。</p>
+      <p class="hint">如果這就是群主的帳號，請檢查 firestore.rules 裡的 UID 是否與 Firebase 控制台 Authentication → Users 裡該帳號的「使用者 UID」完全一致，而且規則已經發布。</p>
+      <button id="deniedLogoutBtn" type="button" class="btn">登出</button>
+    </section>
+
+    <section id="view-app" hidden>
+      <div class="tabs">
+        <button id="tab-ann" type="button" role="tab" aria-selected="true" aria-controls="panel-ann">公告管理</button>
+        <button id="tab-set" type="button" role="tab" aria-selected="false" aria-controls="panel-set">網站設定</button>
+        <a class="tabs-link" href="index.html" target="_blank" rel="noopener">開啟前台</a>
+      </div>
+
+      <div id="panel-ann" role="tabpanel" aria-labelledby="tab-ann">
+        <form id="annForm" class="panel" autocomplete="off">
+          <h2 id="formTitle">新增公告</h2>
+          <div class="field">
+            <label for="f-title">標題</label>
+            <input id="f-title" type="text" maxlength="120" required>
+          </div>
+          <div class="field">
+            <label for="f-category">分類</label>
+            <select id="f-category">
+              <option>公告</option>
+              <option>活動</option>
+              <option>須知</option>
+              <option>緊急</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-body">內文</label>
+            <textarea id="f-body" rows="8" maxlength="5000"></textarea>
+            <p class="hint">可以換行；貼上以 http:// 或 https:// 開頭的網址，前台會自動變成連結。</p>
+          </div>
+          <div class="checks">
+            <label><input id="f-pinned" type="checkbox"> 置頂</label>
+            <label><input id="f-published" type="checkbox" checked> 發布（取消勾選就是草稿，讀者看不到）</label>
+          </div>
+          <div class="actions">
+            <button id="saveBtn" type="submit" class="btn">儲存公告</button>
+            <button id="cancelBtn" type="button" class="btn ghost" hidden>取消編輯</button>
+          </div>
+        </form>
+
+        <h2 class="list-title">所有公告</h2>
+        <ul id="annList" class="admin-list"></ul>
+      </div>
+
+      <div id="panel-set" role="tabpanel" aria-labelledby="tab-set" hidden>
+        <form id="setForm" class="panel" autocomplete="off">
+          <h2>網站設定</h2>
+          <div class="field">
+            <label for="s-name">辦事處名稱</label>
+            <input id="s-name" type="text" maxlength="60">
+          </div>
+          <div class="field">
+            <label for="s-tagline">標語</label>
+            <input id="s-tagline" type="text" maxlength="120">
+            <p class="hint">顯示在名稱下方，一行即可。</p>
+          </div>
+          <div class="field">
+            <label for="s-welcome">歡迎文字</label>
+            <textarea id="s-welcome" rows="4" maxlength="1000"></textarea>
+          </div>
+          <div class="field">
+            <label for="s-windows">服務窗口</label>
+            <textarea id="s-windows" rows="5" maxlength="3000"></textarea>
+            <p class="hint">每行一個窗口，格式：窗口名稱｜說明（說明可以省略）。前台會自動編成 1 號、2 號窗口。</p>
+          </div>
+          <div class="field">
+            <label for="s-rules">辦事須知</label>
+            <textarea id="s-rules" rows="5" maxlength="3000"></textarea>
+            <p class="hint">每行一條，前台會自動編成第一條、第二條。</p>
+          </div>
+          <div class="field">
+            <label for="s-hours">辦公時間</label>
+            <textarea id="s-hours" rows="3" maxlength="500"></textarea>
+          </div>
+          <div class="field">
+            <label for="s-links">相關連結</label>
+            <textarea id="s-links" rows="4" maxlength="2000"></textarea>
+            <p class="hint">每行一個，格式：名稱｜https://網址</p>
+          </div>
+          <div class="field">
+            <label for="s-footer">頁尾文字</label>
+            <input id="s-footer" type="text" maxlength="200">
+          </div>
+          <div class="actions">
+            <button id="setSaveBtn" type="submit" class="btn">儲存設定</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/admin.js"></script>
+  <noscript><p class="notice">後台需要啟用 JavaScript。</p></noscript>
+</body>
+</html>

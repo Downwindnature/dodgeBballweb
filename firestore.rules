@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 只有這個使用者 UID 能寫入。請把下面的 YOUR_ADMIN_UID 換成管理員帳號的 UID
+    // （Firebase 控制台 → Authentication → Users → 使用者 UID 那一欄）。
+    // 用 UID 而不是信箱：就算有人用同樣格式的信箱去註冊，也拿不到寫入權限。
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == 'YOUR_ADMIN_UID';
+    }
+
+    function validAnnouncement(d) {
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && d.body is string && d.body.size() <= 5000
+        && d.category in ['公告', '活動', '須知', '緊急']
+        && d.pinned is bool
+        && d.published is bool
+        && d.no is int;
+    }
+
+    // 公告：任何人只能讀「已發布」的；草稿只有管理員看得到
+    match /announcements/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow create, update: if isAdmin() && validAnnouncement(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // 網站設定：任何人可讀，只有管理員能改
+    match /site/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

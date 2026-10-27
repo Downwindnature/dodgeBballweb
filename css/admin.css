@@ -1,0 +1,348 @@
+/* 後台樣式：沿用 style.css 的色票，版面更樸素 */
+
+.admin-main {
+  padding-top: 28px;
+  padding-bottom: 64px;
+}
+
+.panel {
+  margin: 0 0 24px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper);
+}
+
+.panel h2 {
+  margin: 0 0 14px;
+  color: var(--blue-ink);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.panel p {
+  margin: 0 0 14px;
+}
+
+code {
+  padding: 0.1rem 0.4rem;
+  border-radius: 2px;
+  background: #dfe5e6;
+  font-size: 0.9em;
+}
+
+.userbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+/* 分頁 */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px;
+  margin-bottom: 20px;
+  border-bottom: 4px solid var(--blue);
+}
+
+.tabs [role="tab"] {
+  padding: 0.6rem 1.3rem;
+  border: 0;
+  border-radius: 3px 3px 0 0;
+  background: #cfd7d9;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tabs [role="tab"][aria-selected="true"] {
+  background: var(--blue);
+  color: #fff;
+}
+
+.tabs .tabs-link {
+  margin-left: auto;
+  padding: 0.6rem 0.4rem;
+}
+
+/* 表單 */
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-weight: 700;
+}
+
+.field input[type="text"],
+.field input[type="password"],
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.login-panel {
+  max-width: 420px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.login-hint {
+  margin-top: 16px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--blue);
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin-bottom: 18px;
+}
+
+.checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.checks input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn {
+  padding: 0.55rem 1.3rem;
+  border: 2px solid var(--blue);
+  border-radius: 2px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--blue-ink);
+  border-color: var(--blue-ink);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--blue-ink);
+}
+
+.btn.ghost:hover {
+  background: var(--blue);
+  color: #fff;
+}
+
+.btn.small {
+  padding: 0.2rem 0.8rem;
+  font-size: 0.9375rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.form-msg {
+  margin: 14px 0 0;
+  color: var(--danger);
+  font-weight: 500;
+}
+
+/* 公告列表 */
+.list-title {
+  margin: 8px 0 12px;
+  color: var(--blue-ink);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.admin-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 12px 16px 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper);
+}
+
+.row.is-draft {
+  border-style: dashed;
+  background: #f1f3f2;
+}
+
+.row-no {
+  color: var(--blue-ink);
+  font-family: var(--font-led);
+  font-size: 1.5rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.row-title {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.badge {
+  padding: 0 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.badge.on {
+  color: #1b6b4a;
+}
+
+.badge.off {
+  color: #7a5400;
+}
+
+.badge.pin {
+  border-color: var(--ticket);
+  background: var(--ticket);
+  color: #2b2200;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.row-actions button {
+  padding: 0.2rem 0.75rem;
+  border: 2px solid var(--blue);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--blue-ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.row-actions button:hover {
+  background: var(--blue);
+  color: #fff;
+}
+
+.row-actions button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.row-actions button.danger:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* 提示訊息 */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  max-width: min(92vw, 560px);
+  padding: 0.7rem 1.1rem;
+  border-radius: 3px;
+  background: var(--night);
+  color: #fff;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 0.15s;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+.toast.error {
+  background: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .panel {
+    padding: 18px 16px;
+  }
+
+  .row {
+    grid-template-columns: 52px minmax(0, 1fr);
+    padding-right: 12px;
+  }
+
+  .row-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-left: 12px;
+  }
+
+  .row-no {
+    font-size: 1.25rem;
+  }
+}
