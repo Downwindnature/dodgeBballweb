@@ -189,6 +189,15 @@ marqueeBox.addEventListener("click", (e) => {
 if (!reduceMotion && typeof ResizeObserver === "function") new ResizeObserver(fitMarquee).observe(marqueeBox);
 else window.addEventListener("resize", fitMarquee);
 
+// 網站設定只是裝飾：萬一畫它的時候出錯（例如檔案版本對不上），也不能擋住下面的公告
+function renderSettingsSafely(raw) {
+  try {
+    renderSettings(raw);
+  } catch (err) {
+    console.error("網站設定顯示失敗：", err);
+  }
+}
+
 function renderSettings(raw) {
   const s = { ...DEFAULT_SETTINGS, ...raw };
   const windows = Array.isArray(s.windows) ? s.windows : [];
@@ -541,10 +550,10 @@ $("foot").hidden = !LAYOUT.footer;
 
 if (!isConfigured) {
   showNotice("尚未連接資料庫，目前顯示的是範例內容。請先填寫 js/firebase-config.js。");
-  renderSettings(DEMO_SETTINGS);
+  renderSettingsSafely(DEMO_SETTINGS);
   setItems(DEMO_ANNOUNCEMENTS.map((a) => normalize(a.id, a)));
 } else {
-  renderSettings({});
+  renderSettingsSafely({});
   const fail = () => {
     showNotice("公告暫時無法載入，請稍後重新整理頁面。");
     $("list").innerHTML = '<li><p class="empty">公告暫時無法載入。</p></li>';
@@ -552,7 +561,7 @@ if (!isConfigured) {
 
   onSnapshot(
     doc(db, "site", "settings"),
-    (snap) => renderSettings(snap.exists() ? snap.data() : {}),
+    (snap) => renderSettingsSafely(snap.exists() ? snap.data() : {}),
     fail
   );
 
