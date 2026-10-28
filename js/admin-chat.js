@@ -1,12 +1,12 @@
 // 後台「私訊」分頁：列出聯絡窗口的每個名字 → 新名字先建立帳號密碼 → 之後點自己的名字、輸入帳號密碼，
 // 進入類似 LINE 的收件匣，訪客傳來的訊息會即時出現。
-// 窗口本人的登入只存在這個分頁的記憶體裡（重新整理、關掉分頁就登出），不影響管理員的登入。
+// 窗口本人登入一次之後會記在這台瀏覽器裡，下次點自己的名字直接進去，直到按「登出」；不影響管理員的登入。
 
 import { db, collection, doc, onSnapshot, getContactDb } from "./firebase.js";
 import { escapeHtml as esc } from "./text.js";
 import { contactId, fmtListTime } from "./chat-core.js";
 import { deleteThread, markRead, normalizeContact, watchThreads } from "./chat-data.js";
-import { claimContact, loginContact, logoutContact, resetContact } from "./chat-account.js";
+import { claimContact, isContactLoggedIn, loginContact, logoutContact, resetContact } from "./chat-account.js";
 import { createConversation } from "./chat-ui.js";
 
 const MIN_PASSWORD = 6;
@@ -20,7 +20,7 @@ export function setupChatAdmin({ root, toast }) {
   let stopContacts = null;
   let session = null; // 登入後的收件匣狀態
   let busy = false;
-  let touchedAuth = false; // 用過窗口登入才需要在停止時登出
+  let loggedIn = new Set(); // 這台瀏覽器上已經登入的窗口代碼
 
   const statusOf = (id) => contacts.get(id) ?? { exists: false, uid: "", gen: 0, open: false };
 
@@ -32,14 +32,14 @@ export function setupChatAdmin({ root, toast }) {
     const items = names
       .map((n) => {
         const st = statusOf(n.id);
-        const tag = st.open ? "已建立帳號" : "尚未建立帳號";
+        const tag = !st.open ? "尚未建立帳號" : loggedIn.has(n.id) ? "已建立帳號・已登入" : "已建立帳號";
         return `<li><button type="button" data-id="${esc(n.id)}"><strong>${esc(n.name)}</strong> <small class="${st.open ? "" : "tag-new"}">${tag}</small></button></li>`;
       })
       .join("");
     root.innerHTML = `
       <section class="panel">
         <h2>私訊</h2>
-        <p class="hint">這裡列出「網站設定 → 聯絡窗口」裡的每個名字。第一次使用的名字，先點它建立帳號與密碼；建好之後，再點自己的名字、輸入帳號密碼，就能進入收件匣。訪客傳來的訊息只有本人登入後才看得到。</p>
+        <p class="hint">這裡列出「網站設定 → 聯絡窗口」裡的每個名字。第一次使用的名字，先點它建立帳號與密碼；建好之後，再點自己的名字、輸入帳號密碼，就能進入收件匣。登入一次之後，這台瀏覽器會記住，下次點名字直接進去，除非你按「登出」。訪客傳來的訊息只有本人登入後才看得到。</p>
         ${
           names.length
             ? `<ul class="contacts" aria-label="聯絡窗口">${items}</ul>`
@@ -55,9 +55,29 @@ export function setupChatAdmin({ root, toast }) {
     const n = names.find((x) => x.id === btn.dataset.id);
     if (!n) return;
     picked = n;
-    if (statusOf(n.id).open) renderLogin();
-    else renderCreate();
+    if (!statusOf(n.id).open) return renderCreate();
+    enter(n);
   });
+
+  // 已經登入過（瀏覽器記得）就直接進收件匣，否則要輸入帳號密碼
+  async function enter(n) {
+    if (busy) return;
+    busy = true;
+    let already = false;
+    try {
+      already = await isContactLoggedIn(n.id, statusOf(n.id).uid);
+    } finally {
+      busy = false;
+    }
+    if (view !== "list" || picked?.id !== n.id) return; // 等的時候使用者已經按了別的
+    if (already) {
+      loggedIn.add(n.id);
+      renderInbox();
+    } else {
+      loggedIn.delete(n.id);
+      renderLogin();
+    }
+  }
 
   /* ---------- 建立帳號 ---------- */
 
@@ -110,7 +130,6 @@ export function setupChatAdmin({ root, toast }) {
     formMsg("");
     try {
       const st = statusOf(picked.id);
-      touchedAuth = true;
       await claimContact({ db, cid: picked.id, name: picked.name, username, password: pass, gen: st.gen });
       toast(`已建立「${picked.name}」的私訊帳號。請再點一次自己的名字，輸入帳號密碼進入收件匣。`);
       busy = false;
@@ -159,9 +178,9 @@ export function setupChatAdmin({ root, toast }) {
     formMsg("");
     try {
       const st = statusOf(picked.id);
-      touchedAuth = true;
       await loginContact({ cid: picked.id, username, password: pass, gen: st.gen, uid: st.uid });
       busy = false;
+      loggedIn.add(picked.id);
       renderInbox();
     } catch (err) {
       busy = false;
@@ -178,6 +197,8 @@ export function setupChatAdmin({ root, toast }) {
     try {
       const st = statusOf(picked.id);
       await resetContact({ db, cid: picked.id, name: picked.name, gen: st.gen });
+      loggedIn.delete(picked.id);
+      logoutContact(picked.id);
       toast(`已重設「${picked.name}」。請點它的名字重新建立帳號。`);
       renderList();
     } catch (err) {
@@ -200,21 +221,25 @@ export function setupChatAdmin({ root, toast }) {
 
   function renderInbox() {
     view = "inbox";
-    const cdb = getContactDb();
+    const cdb = getContactDb(picked.id);
     session = { cid: picked.id, name: picked.name, db: cdb, threads: [], vid: null, conv: null, selected: null };
     root.innerHTML = `
       <section class="panel">
         <div class="actions" style="justify-content: space-between; align-items: center; margin-bottom: 12px">
           <h2 style="margin: 0">「${esc(picked.name)}」的私訊</h2>
-          <button id="chatLogoutBtn" type="button" class="btn ghost small">登出</button>
+          <div class="actions" style="margin: 0">
+            <button id="chatLeaveBtn" type="button" class="btn ghost small">返回名單</button>
+            <button id="chatLogoutBtn" type="button" class="btn ghost small">登出</button>
+          </div>
         </div>
         <div id="inbox" class="inbox" data-view="list">
           <ul id="inboxList" class="inbox-list" aria-label="對話列表"></ul>
           <div id="inboxPane" class="inbox-pane"></div>
         </div>
-        <p id="inboxNote" class="hint">訊息會即時出現。這個頁面關掉或重新整理就會登出，沒有手機推播，需要開著頁面才看得到新訊息。</p>
+        <p id="inboxNote" class="hint">訊息會即時出現。登入狀態會記在這台瀏覽器，下次直接進來，直到你按「登出」；公用的電腦用完請記得登出。沒有手機推播，需要開著頁面才看得到新訊息。</p>
       </section>`;
     root.querySelector("#chatLogoutBtn").addEventListener("click", logout);
+    root.querySelector("#chatLeaveBtn").addEventListener("click", leave);
     paintPane();
     session.stopThreads = watchThreads(
       cdb,
@@ -329,9 +354,19 @@ export function setupChatAdmin({ root, toast }) {
     }
   }
 
-  async function logout() {
+  // 離開收件匣但不登出：這台瀏覽器仍記得登入，下次點名字直接進去
+  function leave() {
     closeSession();
-    await logoutContact();
+    renderList();
+  }
+
+  async function logout() {
+    const cid = session?.cid;
+    closeSession();
+    if (cid) {
+      loggedIn.delete(cid);
+      await logoutContact(cid);
+    }
     renderList();
   }
 
@@ -350,6 +385,21 @@ export function setupChatAdmin({ root, toast }) {
     }
   }
 
+  // 問瀏覽器：哪些窗口已經登入過（名單上顯示「已登入」，點名字就直接進去）
+  let sessionCheck = 0;
+  async function refreshSessions() {
+    const run = ++sessionCheck;
+    const now = new Set();
+    for (const n of names) {
+      const st = statusOf(n.id);
+      if (st.open && (await isContactLoggedIn(n.id, st.uid))) now.add(n.id);
+    }
+    if (run !== sessionCheck) return; // 有更新的一輪檢查了
+    const same = now.size === loggedIn.size && [...now].every((id) => loggedIn.has(id));
+    loggedIn = now;
+    if (!same) refreshList();
+  }
+
   // 名單或帳號狀態變動時，只重畫名單畫面；填到一半的表單與收件匣不要動它
   const refreshList = () => {
     if (view === "list") renderList();
@@ -364,6 +414,7 @@ export function setupChatAdmin({ root, toast }) {
         (snap) => {
           setNames(snap.exists() ? snap.data().windows : []);
           refreshList();
+          refreshSessions();
         },
         () => {}
       );
@@ -372,6 +423,7 @@ export function setupChatAdmin({ root, toast }) {
         (snap) => {
           contacts = new Map(snap.docs.map((d) => [d.id, normalizeContact(d)]));
           refreshList();
+          refreshSessions();
           // 登入中的窗口被重設了：馬上登出
           if (view === "inbox" && session && !statusOf(session.cid).open) {
             toast("這個窗口的帳號已被重設，已登出。", true);
@@ -392,9 +444,9 @@ export function setupChatAdmin({ root, toast }) {
       stopSettings?.();
       stopContacts?.();
       stopSettings = stopContacts = null;
-      closeSession();
-      if (touchedAuth) logoutContact();
-      touchedAuth = false;
+      closeSession(); // 只關掉畫面與監聽；窗口的登入狀態留著，下次還是直接進去
+      sessionCheck++;
+      loggedIn = new Set();
       names = [];
       contacts = new Map();
       picked = null;

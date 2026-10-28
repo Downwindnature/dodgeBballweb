@@ -1,7 +1,8 @@
-// 聯絡窗口的私訊帳號：建立、登入、重設。只有後台會載入。
+// 聯絡窗口的私訊帳號：建立、登入、登出、重設。只有後台會載入。
 //
 // 帳號用 Firebase 登入（信箱＋密碼），信箱是用「窗口代碼、帳號名稱、代數」算出來的假信箱，使用者只需要記帳號名稱與密碼。
-// 登入走另一條連線（getContactAuth），不會把後台管理員的登入踢掉，也不會把登入狀態存進瀏覽器。
+// 登入走另外的連線（每個窗口一條，getContactAuth(窗口代碼)），不會把後台管理員的登入踢掉。
+// 登入後會記在這台瀏覽器裡，下次點自己的名字就直接進去，直到按「登出」。
 // 哪個帳號屬於哪個窗口，記在 contacts/{cid}.uid，而且只有管理員寫得進去。
 
 import { doc, setDoc, serverTimestamp } from "./firebase.js";
@@ -53,7 +54,7 @@ function explain(err) {
 // 建立帳號並綁定到這個窗口。db 是管理員的 db。
 // 如果上次建到一半（帳號建好了，但還沒綁到窗口），用同一組帳號密碼再試一次可以接續完成。
 export async function claimContact({ db, cid, name, username, password, gen = 0 }) {
-  const authC = getContactAuth();
+  const authC = getContactAuth(cid);
   if (!authC) throw new AccountError("網站尚未連接資料庫。");
   if (!String(username ?? "").trim()) throw new AccountError("請輸入帳號名稱。");
   const email = contactEmail(cid, username, gen, adminEmailDomain);
@@ -90,7 +91,7 @@ export async function claimContact({ db, cid, name, username, password, gen = 0 
 
 // 登入窗口本人的帳號。成功回傳 { uid }；帳號不是這個窗口的就登出並丟出錯誤。
 export async function loginContact({ cid, username, password, gen = 0, uid }) {
-  const authC = getContactAuth();
+  const authC = getContactAuth(cid);
   if (!authC) throw new AccountError("網站尚未連接資料庫。");
   let cred;
   try {
@@ -105,9 +106,23 @@ export async function loginContact({ cid, username, password, gen = 0, uid }) {
   return { uid: cred.user.uid };
 }
 
-export async function logoutContact() {
-  const authC = getContactAuth();
+export async function logoutContact(cid) {
+  const authC = getContactAuth(cid);
   if (authC) await signOut(authC).catch(() => {});
+}
+
+// 這個窗口在這台瀏覽器上是不是已經登入（而且登入的帳號就是目前綁定的那個）。
+// 登入狀態要等瀏覽器讀完儲存的資料才知道，所以是非同步的。
+export async function isContactLoggedIn(cid, uid) {
+  if (!uid) return false;
+  const authC = getContactAuth(cid);
+  if (!authC) return false;
+  try {
+    await authC.authStateReady();
+  } catch {
+    return false;
+  }
+  return authC.currentUser?.uid === uid;
 }
 
 // 重設：把這個窗口變回「尚未建立帳號」。原有的對話紀錄會保留，新帳號建好後接著用。

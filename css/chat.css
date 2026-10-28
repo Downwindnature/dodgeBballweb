@@ -368,8 +368,17 @@
   background: linear-gradient(135deg, #ffa13c, #ff4d8d);
   color: #fff;
   box-shadow: 0 6px 18px #ff4d8d55, 0 2px 6px #0003;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none; /* 手指在按鈕上拖曳時，不要讓頁面跟著捲動 */
+  user-select: none;
+  -webkit-user-select: none;
   transition: transform 0.15s ease;
+}
+
+.chat.is-dragging .chat-fab {
+  cursor: grabbing;
+  transform: scale(1.08);
+  transition: none;
 }
 
 .chat-fab:hover {
@@ -424,6 +433,16 @@
   border-radius: 18px;
   background: var(--chat-bg);
   box-shadow: 0 12px 40px #0004, 0 2px 8px #0003;
+}
+
+.chat[data-h="left"] .chat-panel {
+  right: auto;
+  left: 0;
+}
+
+.chat[data-v="top"] .chat-panel {
+  top: 0;
+  bottom: auto;
 }
 
 .chat[data-open="true"] .chat-fab {

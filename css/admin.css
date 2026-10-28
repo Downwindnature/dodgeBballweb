@@ -522,21 +522,24 @@ code {
   color: var(--blue-ink);
 }
 
-/* 署名 */
+/* 署名：標籤與輸入框同一列、緊貼在一起；說明文字另起一列。
+   （不用 grid：說明文字橫跨兩欄時，會把第一欄撐到跟整段文字一樣寬，輸入框就被推到最右邊。） */
 .who {
-  display: grid;
-  grid-template-columns: auto minmax(0, 220px);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px 12px;
   margin-bottom: 18px;
 }
 
 .who label {
+  flex: 0 0 auto;
   font-weight: 700;
 }
 
 .who input {
-  width: 100%;
+  flex: 0 1 220px;
+  min-width: 0;
   padding: 0.4rem 0.6rem;
   border: 2px solid var(--line);
   border-radius: 2px;
@@ -550,7 +553,7 @@ code {
 }
 
 .who .hint {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
 }
 
 .todo-note {
@@ -704,8 +707,8 @@ code {
     padding: 12px 4px;
   }
 
-  .who {
-    grid-template-columns: 1fr;
+  .who input {
+    flex: 1 1 0; /* 手機也維持輸入框在「署名」旁邊，只是撐滿剩下的寬度 */
   }
 }
 

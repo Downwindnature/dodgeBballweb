@@ -10,6 +10,12 @@ const KEY_NICK = "bball.chat.nick";
 const KEY_SEEN = "bball.chat.seen"; // { 窗口代碼: 已看過的最後一則窗口訊息時間(毫秒) }
 const KEY_KNOWN = "bball.chat.known"; // { 窗口代碼: 1 } 傳過訊息的窗口，才需要監看有沒有回覆
 const KEY_LAST = "bball.chat.last"; // 上次聊的窗口代碼
+const KEY_POS = "bball.chat.pos"; // 圓形按鈕被拖到哪裡：{ r: 離右邊, b: 離下面 }（像素）
+
+const FAB_SIZE = 58;
+const EDGE = 8; // 按鈕與視窗離畫面邊緣至少留這麼多
+const DRAG_START = 6; // 移動超過這麼多像素才算拖曳，否則算點一下
+const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), Math.max(lo, hi));
 
 const ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5.5 3h13A2.5 2.5 0 0 1 21 5.5v9a2.5 2.5 0 0 1-2.5 2.5H12l-4.6 3.7a.6.6 0 0 1-1-.47V17h-.9A2.5 2.5 0 0 1 3 14.5v-9A2.5 2.5 0 0 1 5.5 3Z"/><circle cx="8.5" cy="10" r="1.3" fill="#ff5f7e"/><circle cx="12" cy="10" r="1.3" fill="#ff5f7e"/><circle cx="15.5" cy="10" r="1.3" fill="#ff5f7e"/></svg>`;
 
@@ -82,6 +88,86 @@ export function initChat({ db }) {
   panel.hidden = true;
   root.append(fab, panel);
   document.body.append(root);
+
+  /* ---------- 圓形按鈕：可以用滑鼠或手指拖到喜歡的位置 ---------- */
+
+  let pos = store.getJSON(KEY_POS, null);
+  if (pos && !(Number.isFinite(pos.r) && Number.isFinite(pos.b))) pos = null;
+  let drag = null;
+  let justDragged = false;
+
+  const viewport = () => ({ w: window.innerWidth, h: window.innerHeight });
+
+  function applyPos() {
+    if (!pos) return;
+    const v = viewport();
+    pos = { r: clamp(pos.r, EDGE, v.w - FAB_SIZE - EDGE), b: clamp(pos.b, EDGE, v.h - FAB_SIZE - EDGE) };
+    root.style.right = pos.r + "px";
+    root.style.bottom = pos.b + "px";
+  }
+
+  fab.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const rect = root.getBoundingClientRect();
+    const v = viewport();
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, r: v.w - rect.right, b: v.h - rect.bottom, moved: false };
+    // 一按下就抓住這個指標：滑鼠移得很快、移出按鈕範圍也不會斷掉
+    try {
+      fab.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* 略過 */
+    }
+  });
+  fab.addEventListener("pointermove", (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (!drag.moved) {
+      if (Math.hypot(dx, dy) < DRAG_START) return;
+      drag.moved = true;
+      root.classList.add("is-dragging");
+    }
+    pos = { r: drag.r - dx, b: drag.b - dy };
+    applyPos();
+  });
+  const endDrag = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const moved = drag.moved;
+    drag = null;
+    root.classList.remove("is-dragging");
+    if (moved) {
+      store.setJSON(KEY_POS, pos);
+      // 拖完放開時瀏覽器還會補一個 click，要略過，不然一放手視窗就展開了
+      justDragged = true;
+      setTimeout(() => (justDragged = false), 60);
+    }
+  };
+  fab.addEventListener("pointerup", endDrag);
+  fab.addEventListener("pointercancel", endDrag);
+  window.addEventListener("resize", () => {
+    applyPos();
+    if (isOpen) placePanel();
+  });
+  applyPos();
+
+  // 小視窗從按鈕所在的那一角展開：按鈕在左半邊就往右展開、在上半邊就往下展開，
+  // 最後再確認整個視窗都在畫面內（手機或按鈕靠近邊緣時會自動挪進來）
+  function placePanel() {
+    const v = viewport();
+    const r = root.getBoundingClientRect();
+    root.dataset.h = r.left + FAB_SIZE / 2 < v.w / 2 ? "left" : "right";
+    root.dataset.v = r.top + FAB_SIZE / 2 < v.h / 2 ? "top" : "bottom";
+    panel.style.transform = "";
+    const p = panel.getBoundingClientRect();
+    if (!p.width) return; // 還沒有版面資訊（測試環境）
+    let dx = 0;
+    let dy = 0;
+    if (p.left < EDGE) dx = EDGE - p.left;
+    else if (p.right > v.w - EDGE) dx = v.w - EDGE - p.right;
+    if (p.top < EDGE) dy = EDGE - p.top;
+    else if (p.bottom > v.h - EDGE) dy = v.h - EDGE - p.bottom;
+    if (dx || dy) panel.style.transform = `translate(${Math.round(dx)}px, ${Math.round(dy)}px)`;
+  }
 
   const getNick = () => cleanNick(nickInput.value, defaultNick(vid));
   nickInput.addEventListener("change", () => {
@@ -237,6 +323,7 @@ export function initChat({ db }) {
     isOpen = true;
     root.dataset.open = "true";
     panel.hidden = false;
+    placePanel();
     fab.setAttribute("aria-expanded", "true");
     if (!current) {
       if (byId.size === 1) select([...byId.keys()][0]);
@@ -267,6 +354,7 @@ export function initChat({ db }) {
   }
 
   fab.addEventListener("click", () => {
+    if (justDragged) return;
     trigger = fab;
     open();
   });
