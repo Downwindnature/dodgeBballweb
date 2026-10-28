@@ -1,9 +1,8 @@
-// 後台「圖片牆」分頁：新增、編輯、排序、停用、刪除，以及預設停留秒數。
+// 後台「圖片牆」分頁：新增（只能從手機或電腦上傳檔案）、編輯、排序、停用、刪除。
 // 資料存在 site/wall 一份文件裡（規則沿用 site 的「任何人可讀、只有管理員可寫」，不用改規則）。
 
 import { db, doc, onSnapshot, setDoc, serverTimestamp } from "./firebase.js";
 import { escapeHtml as esc, formatDateTime } from "./text.js";
-import { setupUpload } from "./admin-upload.js";
 import {
   DEFAULT_SECONDS,
   MAX_SECONDS,
@@ -40,24 +39,46 @@ const toLocalInput = (ms) => {
 };
 const when = (ms) => formatDateTime(new Date(ms));
 
+const THUMB_RETRY_MS = 8000; // 剛上傳的檔案網站還沒發布時，縮圖載入會失敗：每隔幾秒再試
+const THUMB_RETRY_MAX = 15;
+
 /**
- * @param {{run: Function, toast: Function, selectTab: Function}} deps admin.js 的共用函式
+ * @param {{run: Function, toast: Function, selectTab: Function, upload: {picker: Function}}} deps admin.js 的共用函式
  */
-export function setupWallAdmin({ run, toast, selectTab }) {
+export function setupWallAdmin({ run, toast, selectTab, upload }) {
   let wall = null; // { defaultSeconds, slides }；還沒載入完成時是 null
   let editingId = null;
   let unsub = null;
   let ticker = null; // 定時檢查有沒有新到期的張，讓列表上的狀態跟著更新
   let expiredKey = "";
 
-  // 從手機或電腦上傳：上傳成功後把「media/檔名」填進表單，類型交給副檔名自動判斷
-  const upload = setupUpload({
-    toast,
+  let originalUrl = ""; // 編輯時，這一張原本的檔案路徑
+
+  // 檔案路徑不給人手動輸入：上傳成功後存在隱藏欄位 w-url，類型交給副檔名自動判斷
+  const picker = upload.picker({
+    fileId: "w-file",
+    msgId: "w-upload-msg",
+    linkId: "ghShowBtn",
+    lockIds: ["wallSaveBtn"],
+    saveHint: "儲存",
     onUploaded(path) {
       $("w-url").value = path;
       $("w-kind").value = "auto";
+      paintCurrent();
     },
   });
+
+  // 編輯時顯示目前用的檔案（唯讀），換檔案就重新選擇
+  function paintCurrent() {
+    const url = $("w-url").value;
+    const box = $("w-current");
+    box.hidden = !(editingId && url);
+    box.textContent = !box.hidden
+      ? url === originalUrl
+        ? `目前的檔案：${url}。要換檔案，請重新選擇上面的檔案。`
+        : `已換成新上傳的檔案：${url}，按「儲存」才會生效。`
+      : "";
+  }
 
   const loaded = () => {
     if (wall) return true;
@@ -86,14 +107,17 @@ export function setupWallAdmin({ run, toast, selectTab }) {
 
   function resetForm() {
     editingId = null;
+    originalUrl = "";
     $("wallForm").reset();
+    $("w-url").value = ""; // 隱藏欄位不會被 reset 清掉
     $("w-active").checked = true;
     $("w-expire-mode").value = "forever";
     $("w-expires").value = "";
     syncExpire();
     $("wallFormTitle").textContent = "新增圖片或影片";
     $("wallCancelBtn").hidden = true;
-    upload.reset();
+    picker.reset();
+    paintCurrent();
   }
 
   $("w-expire-mode").addEventListener("change", () => {
@@ -103,7 +127,9 @@ export function setupWallAdmin({ run, toast, selectTab }) {
 
   function startEdit(s) {
     editingId = s.id;
+    originalUrl = s.url;
     $("w-url").value = s.url;
+    picker.reset(); // 換了一張來編輯：舊的上傳提示與還在跑的上傳作廢
     $("w-kind").value = "auto";
     $("w-alt").value = s.alt;
     $("w-seconds").value = s.seconds === null ? "" : String(s.seconds);
@@ -113,9 +139,10 @@ export function setupWallAdmin({ run, toast, selectTab }) {
     syncExpire();
     $("wallFormTitle").textContent = "編輯這一張";
     $("wallCancelBtn").hidden = false;
+    paintCurrent();
     selectTab("wall");
     $("wallForm").scrollIntoView({ behavior: "smooth", block: "start" });
-    $("w-url").focus({ preventScroll: true });
+    $("w-alt").focus({ preventScroll: true });
   }
 
   $("wallCancelBtn").addEventListener("click", resetForm);
@@ -125,16 +152,21 @@ export function setupWallAdmin({ run, toast, selectTab }) {
     if (!loaded()) return;
 
     const url = $("w-url").value.trim();
+    if (!url) {
+      toast("請先選擇要上傳的圖片、GIF 或 MP4 檔案。", true);
+      $("w-file").focus();
+      return;
+    }
     if (!mediaUrl(url)) {
-      toast("網址不正確：請填專案裡的路徑（例如 media/a.jpg）或 https:// 開頭的網址。", true);
-      $("w-url").focus();
+      toast("檔案路徑不正確，請重新上傳檔案。", true);
+      $("w-file").focus();
       return;
     }
     const secondsRaw = $("w-seconds").value.trim();
     if (secondsRaw !== "") {
       const n = Number(secondsRaw);
       if (!Number.isFinite(n) || n < MIN_SECONDS || n > MAX_SECONDS) {
-        toast(`停留秒數要在 ${MIN_SECONDS}–${MAX_SECONDS} 之間，或留空使用預設秒數。`, true);
+        toast(`停留秒數要在 ${MIN_SECONDS}–${MAX_SECONDS} 之間，或留空使用預設的 ${wall.defaultSeconds} 秒。`, true);
         $("w-seconds").focus();
         return;
       }
@@ -185,21 +217,6 @@ export function setupWallAdmin({ run, toast, selectTab }) {
     const ok = await save({ ...wall, slides }, editingId ? "已儲存這一張" : "已新增到圖片牆");
     $("wallSaveBtn").disabled = false;
     if (ok) resetForm();
-  });
-
-  /* ---------- 預設秒數 ---------- */
-
-  $("wallDefaultForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!loaded()) return;
-    const n = clampSeconds($("w-default").value, null);
-    if (n === null || Number($("w-default").value) !== n) {
-      toast(`預設秒數要在 ${MIN_SECONDS}–${MAX_SECONDS} 之間。`, true);
-      return;
-    }
-    $("wallDefaultBtn").disabled = true;
-    await save({ ...wall, defaultSeconds: n }, `預設停留秒數已改為 ${n} 秒`);
-    $("wallDefaultBtn").disabled = false;
   });
 
   /* ---------- 列表 ---------- */
@@ -271,8 +288,32 @@ export function setupWallAdmin({ run, toast, selectTab }) {
 
   function render() {
     if (!wall) return;
-    $("w-default").value = String(wall.defaultSeconds);
+    $("w-seconds").placeholder = `留空 = ${wall.defaultSeconds} 秒`;
     renderList();
+  }
+
+  // 縮圖載入失敗（多半是剛上傳、網站還沒發布）：先顯示「發布中…」，隔幾秒自動重試，不用手動重新整理
+  $("wallList").addEventListener(
+    "error",
+    (e) => {
+      const el = e.target;
+      const thumb = el?.closest?.(".wall-thumb");
+      if (!thumb || !["IMG", "VIDEO"].includes(el.tagName)) return;
+      thumb.classList.add("is-pending");
+      const n = Number(el.dataset.retry || 0);
+      if (n >= THUMB_RETRY_MAX) return;
+      el.dataset.retry = String(n + 1);
+      setTimeout(() => {
+        if (!el.isConnected) return;
+        el.dataset.src ||= el.getAttribute("src");
+        const base = el.dataset.src;
+        el.src = `${base}${base.includes("?") ? "&" : "?"}_r=${Date.now()}`;
+      }, THUMB_RETRY_MS);
+    },
+    true
+  );
+  for (const ev of ["load", "loadedmetadata"]) {
+    $("wallList").addEventListener(ev, (e) => e.target?.closest?.(".wall-thumb")?.classList.remove("is-pending"), true);
   }
 
   // 一次刪掉所有已到期的（只移除設定，不刪檔案）
@@ -354,7 +395,6 @@ export function setupWallAdmin({ run, toast, selectTab }) {
       wall = null;
       expiredKey = "";
       resetForm();
-      upload.stop();
       $("wallPurgeBtn").hidden = true;
       $("wallList").innerHTML = "";
     },

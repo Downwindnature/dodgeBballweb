@@ -16,7 +16,7 @@
 <body>
   <header class="top">
     <div class="wrap">
-      <a class="brand" href="index.html"><span>躲B球辦事處後台</span></a>
+      <span class="brand">躲B球辦事處後台</span>
       <div id="userBox" class="userbox" hidden>
         <span id="userEmail"></span>
         <button id="logoutBtn" type="button" class="btn ghost small">登出</button>
@@ -72,6 +72,9 @@
       </div>
 
       <div id="panel-ann" role="tabpanel" aria-labelledby="tab-ann">
+        <h2 class="list-title">所有公告</h2>
+        <ul id="annList" class="admin-list"></ul>
+
         <form id="annForm" class="panel" autocomplete="off">
           <h2 id="formTitle">新增公告</h2>
           <div class="field">
@@ -122,11 +125,12 @@
           </div>
         </details>
 
-        <h2 class="list-title">所有公告</h2>
-        <ul id="annList" class="admin-list"></ul>
       </div>
 
       <div id="panel-todo" role="tabpanel" aria-labelledby="tab-todo" hidden>
+        <h2 id="todoCount" class="list-title">待辦清單</h2>
+        <ul id="todoList" class="admin-list"></ul>
+
         <form id="todoForm" class="panel" autocomplete="off">
           <h2 id="todoFormTitle">新增待辦事項</h2>
           <p class="hint todo-note">待辦事項只有登入後台的人看得到，前台讀者看不到。</p>
@@ -144,26 +148,18 @@
           </div>
         </form>
 
-        <h2 id="todoCount" class="list-title">待辦清單</h2>
-        <ul id="todoList" class="admin-list"></ul>
       </div>
 
       <div id="panel-wall" role="tabpanel" aria-labelledby="tab-wall" hidden>
-        <form id="wallDefaultForm" class="panel" autocomplete="off">
-          <h2>輪播設定</h2>
-          <div class="field">
-            <label for="w-default">圖片預設停留秒數</label>
-            <input id="w-default" type="number" min="1" max="600" step="0.5" required>
-            <p class="hint">一般圖片停留這麼久就換下一張；單張可以另外設定秒數。GIF 與影片不看這個數字：播完後再等 1 秒才換下一張。</p>
-          </div>
-          <div class="actions">
-            <button id="wallDefaultBtn" type="submit" class="btn">儲存秒數</button>
-          </div>
-        </form>
+        <div class="list-head">
+          <h2 id="wallCount" class="list-title">圖片牆內容</h2>
+          <button id="wallPurgeBtn" type="button" class="btn ghost small" hidden>清除已到期</button>
+        </div>
+        <ol id="wallList" class="admin-list"></ol>
 
         <details id="ghBox" class="panel import-box">
           <summary id="ghSummary">從手機或電腦上傳檔案的設定（GitHub）</summary>
-          <p class="hint">要從手機或電腦直接上傳圖片、GIF、MP4，需要先給這個後台一組「只能寫入這個專案」的 GitHub 權杖（Token）。檔案會存進專案的 <code>media</code> 資料夾，費用是零，但網站重新發布要等一兩分鐘。只在第一次或權杖過期時需要設定。不想設定的話，也可以直接在下面的欄位填網址。</p>
+          <p class="hint">要從手機或電腦直接上傳圖片、GIF、MP4，需要先給這個後台一組「只能寫入這個專案」的 GitHub 權杖（Token）。檔案會存進專案的 <code>media</code> 資料夾，費用是零，但網站重新發布要等一兩分鐘。只在第一次或權杖過期時需要設定；圖片牆與「網站設定」裡的網站背景共用這一份設定。</p>
           <ol class="gh-steps">
             <li>登入 GitHub → 右上角頭像 → <strong>Settings</strong> → 左下 <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Fine-grained tokens</strong> → <strong>Generate new token</strong>。</li>
             <li><strong>Repository access</strong> 選 <strong>Only select repositories</strong>，只選這個網站的專案。</li>
@@ -184,9 +180,9 @@
             <p class="hint">只有當 GitHub Pages 發布的不是預設分支時才需要填。</p>
           </div>
           <div class="checks">
-            <label><input id="gh-remember" type="checkbox"> 記住權杖（關掉瀏覽器後仍保留）</label>
+            <label><input id="gh-remember" type="checkbox" checked> 記住權杖（關掉瀏覽器後仍保留，不用每次重貼）</label>
           </div>
-          <p class="hint">權杖等同密碼：拿到它的人可以修改這個專案裡的任何檔案（不只是 media 資料夾），請不要貼給別人。沒勾「記住」時只留在這個分頁，登出或關掉分頁就消失；勾了會存在這台瀏覽器裡，而且同一個 GitHub 帳號底下的其他 GitHub Pages 網站也讀得到，請只在自己的手機或電腦上勾。</p>
+          <p class="hint">權杖等同密碼：拿到它的人可以修改這個專案裡的任何檔案（不只是 media 資料夾），請不要貼給別人，也不要寫進網站的檔案裡。勾「記住」時，權杖會存在這台手機或電腦的瀏覽器裡，而且同一個 GitHub 帳號底下的其他 GitHub Pages 網站也讀得到，請只在自己的手機或電腦上勾；沒勾時只留在這個分頁，登出或關掉分頁就消失。</p>
           <div class="actions">
             <button id="ghSaveBtn" type="button" class="btn">測試並儲存</button>
             <button id="ghClearBtn" type="button" class="btn ghost">清除設定</button>
@@ -196,17 +192,14 @@
 
         <form id="wallForm" class="panel" autocomplete="off">
           <h2 id="wallFormTitle">新增圖片或影片</h2>
-          <p class="hint wall-note">可以從手機或電腦上傳檔案，也可以填網址（專案裡的 <code>media/檔名.jpg</code>，或 <code>https://</code> 開頭的網址）。MP4 本身有聲音的話，放在圖片牆上也會有聲音。前台沒有任何一張在顯示時，整個圖片牆不會出現。</p>
+          <p class="hint wall-note">從手機或電腦上傳圖片、GIF 或 MP4。MP4 本身有聲音的話，放在圖片牆上也會有聲音。前台沒有任何一張在顯示時，整個圖片牆不會出現。</p>
           <div class="field">
             <label for="w-file">從手機或電腦上傳（圖片、GIF、MP4，單檔 25 MB 以內）</label>
             <input id="w-file" type="file" accept="image/*,video/*,.mp4,.webm,.m4v,.mov,.ogv">
             <p id="w-upload-msg" class="hint" role="status" aria-live="polite"></p>
             <p class="hint"><button id="ghShowBtn" type="button" class="linkbtn" hidden>更改上傳設定（GitHub 專案與權杖）</button></p>
-          </div>
-          <div class="field">
-            <label for="w-url">檔案路徑或網址</label>
-            <input id="w-url" type="text" maxlength="500" placeholder="media/banner.jpg" required>
-            <p class="hint">上傳成功後會自動填入這裡；要用網址的話直接貼在這裡。</p>
+            <input id="w-url" type="hidden">
+            <p id="w-current" class="hint" hidden></p>
           </div>
           <div class="field">
             <label for="w-kind">類型</label>
@@ -220,12 +213,12 @@
           <div class="field">
             <label for="w-alt">說明文字（選填）</label>
             <input id="w-alt" type="text" maxlength="100">
-            <p class="hint">給看不到圖的人（螢幕閱讀器）聽的描述，不會顯示在畫面上；在這個列表裡會當成標題。</p>
+            <p class="hint">給看不到圖的人（螢幕閱讀器）聽的描述，不會顯示在畫面上；在上面的列表裡會當成標題。</p>
           </div>
           <div class="field">
             <label for="w-seconds">停留秒數（選填）</label>
-            <input id="w-seconds" type="number" min="1" max="600" step="0.5" placeholder="使用預設秒數">
-            <p class="hint">只對圖片與 GIF 有效；GIF 留空時是播完一輪再等 1 秒。影片一律播完。</p>
+            <input id="w-seconds" type="number" min="1" max="600" step="0.5" placeholder="留空 = 5 秒">
+            <p class="hint">留空：圖片停留輸入框裡顯示的預設秒數，GIF 與影片播完一輪後再等 1 秒。填了秒數：圖片與 GIF 就停留這麼久；影片一律播完。</p>
           </div>
           <div class="field">
             <label for="w-expire-mode">顯示期限</label>
@@ -247,15 +240,33 @@
             <button id="wallCancelBtn" type="button" class="btn ghost" hidden>取消編輯</button>
           </div>
         </form>
-
-        <div class="list-head">
-          <h2 id="wallCount" class="list-title">圖片牆內容</h2>
-          <button id="wallPurgeBtn" type="button" class="btn ghost small" hidden>清除已到期</button>
-        </div>
-        <ol id="wallList" class="admin-list"></ol>
       </div>
 
       <div id="panel-set" role="tabpanel" aria-labelledby="tab-set" hidden>
+        <form id="bgForm" class="panel" autocomplete="off">
+          <h2>網站背景</h2>
+          <p class="hint wall-note">從手機或電腦上傳圖片、GIF 或 MP4，當作前台整個網頁的背景，可以調成半透明。公告、圖片牆等內容區塊維持原本的樣子，只有它們周圍露出背景。MP4 當背景時固定靜音、重複播放，建議用幾 MB 以內的短片。</p>
+          <div id="bg-preview" class="bg-preview">
+            <div id="bg-preview-media" class="bg-preview-media" aria-hidden="true" hidden></div>
+            <p id="bg-preview-empty" class="bg-empty">目前沒有背景</p>
+          </div>
+          <div class="field">
+            <label for="bg-file">從手機或電腦上傳（圖片、GIF、MP4，單檔 25 MB 以內）</label>
+            <input id="bg-file" type="file" accept="image/*,video/*,.mp4,.webm,.m4v,.mov,.ogv">
+            <p id="bg-upload-msg" class="hint" role="status" aria-live="polite"></p>
+            <p class="hint"><button id="bgGhShowBtn" type="button" class="linkbtn" hidden>更改上傳設定（GitHub 專案與權杖）</button></p>
+          </div>
+          <div class="field">
+            <label for="bg-opacity">背景不透明度：<span id="bg-opacity-val">40</span>%</label>
+            <input id="bg-opacity" type="range" min="10" max="100" step="5" value="40">
+            <p class="hint">數字越小背景越淡（越透明）。上面的預覽會跟著變。</p>
+          </div>
+          <div class="actions">
+            <button id="bgSaveBtn" type="submit" class="btn">儲存背景</button>
+            <button id="bgRemoveBtn" type="button" class="btn ghost" hidden>移除背景</button>
+          </div>
+        </form>
+
         <form id="setForm" class="panel" autocomplete="off">
           <h2>網站設定</h2>
           <div class="field">

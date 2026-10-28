@@ -19,7 +19,9 @@ import {
   writeBatch,
 } from "./firebase.js";
 import { parseImport, MAX_FILE_BYTES } from "./import.js";
+import { setupUpload } from "./admin-upload.js";
 import { setupWallAdmin } from "./admin-wall.js";
+import { setupBackgroundAdmin } from "./admin-bg.js";
 import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "./firebase-auth.js";
 import { adminEmailDomain, emailAliases } from "./firebase-config.js";
 import { DEFAULT_SETTINGS } from "./defaults.js";
@@ -750,7 +752,10 @@ $("todoList").addEventListener("click", async (e) => {
 
 /* ---------- 圖片牆 ---------- */
 
-const wallAdmin = setupWallAdmin({ run, toast, selectTab });
+// 「從手機或電腦上傳」的 GitHub 設定只有一份，圖片牆與網站背景共用
+const upload = setupUpload({ toast, selectTab });
+const wallAdmin = setupWallAdmin({ run, toast, selectTab, upload });
+const bgAdmin = setupBackgroundAdmin({ run, toast, upload });
 
 /* ---------- 網站設定 ---------- */
 
@@ -769,7 +774,9 @@ function fillSettings(raw) {
 async function loadSettings() {
   try {
     const snap = await getDoc(doc(db, "site", "settings"));
-    fillSettings(snap.exists() ? snap.data() : {});
+    const raw = snap.exists() ? snap.data() : {};
+    fillSettings(raw);
+    bgAdmin.fill(raw);
   } catch (err) {
     toast(errorText(err), true);
   }
@@ -794,7 +801,8 @@ $("setForm").addEventListener("submit", async (e) => {
   };
 
   $("setSaveBtn").disabled = true;
-  const ok = await run(() => setDoc(doc(db, "site", "settings"), data));
+  // merge：只更新這裡的文字欄位，不動到「網站背景」的欄位
+  const ok = await run(() => setDoc(doc(db, "site", "settings"), data, { merge: true }));
   $("setSaveBtn").disabled = false;
   if (!ok) return;
 
@@ -819,6 +827,8 @@ function stopAll() {
   todoSeenAt = null;
   $("todoBadge").hidden = true;
   wallAdmin.stop();
+  bgAdmin.stop();
+  upload.stop();
 }
 
 function startApp(user) {

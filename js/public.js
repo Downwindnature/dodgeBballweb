@@ -24,12 +24,14 @@ import {
   zhNum,
 } from "./text.js";
 import { createWall } from "./wall.js";
+import { normalizeBackground, paintBackground } from "./background.js";
 
-// 版面開關：目前只顯示公告欄。想把某個區塊加回來，把對應的值改成 true 即可。
+// 版面開關：想關掉某個區塊，把對應的值改成 false 即可。
 const LAYOUT = {
-  hero: false, // 首屏：藍色招牌 + 最新公告叫號面板
-  extraSections: false, // 服務窗口、辦事須知、辦公時間與連結（沒填內容的不會出現）
-  footer: false, // 頁尾
+  hero: true, // 首屏：藍色招牌（名稱、標語、歡迎文字）
+  called: false, // 首屏右邊的「最新公告」叫號面板
+  extraSections: true, // 服務窗口、辦事須知、辦公時間與連結（沒填內容的不會出現）
+  footer: true, // 頁尾
 };
 
 const $ = (id) => document.getElementById(id);
@@ -125,10 +127,27 @@ function setItems(list) {
 /* ---------- 網站設定 ---------- */
 
 function toggleSection(id, on) {
-  const visible = LAYOUT.extraSections && on;
-  $(id).hidden = !visible;
-  const link = document.querySelector(`[data-nav="${id}"]`);
-  if (link) link.hidden = !visible;
+  $(id).hidden = !(LAYOUT.extraSections && on);
+}
+
+// 網站背景：設定沒變就不重畫（影片才不會每次收到更新都從頭播）
+let bgKey = "";
+function renderBackground(s) {
+  const box = $("siteBg");
+  const bg = normalizeBackground(s);
+  const key = bg ? `${bg.kind}|${bg.src}` : "";
+  if (!bg) {
+    box.replaceChildren();
+    box.hidden = true;
+    bgKey = "";
+    return;
+  }
+  if (key !== bgKey) {
+    bgKey = key;
+    paintBackground(box, bg, { reduceMotion });
+  } else {
+    box.style.opacity = String(bg.opacity / 100);
+  }
 }
 
 function renderSettings(raw) {
@@ -183,6 +202,8 @@ function renderSettings(raw) {
   toggleSection("info", Boolean(s.hours) || links.length > 0);
 
   $("footerText").textContent = s.footer || name;
+
+  renderBackground(s);
 }
 
 /* ---------- 叫號面板 ---------- */
@@ -478,6 +499,8 @@ function showNotice(text) {
 /* ---------- 啟動 ---------- */
 
 $("hero").hidden = !LAYOUT.hero;
+$("hero").classList.toggle("solo", !LAYOUT.called);
+$("called").hidden = !LAYOUT.called;
 $("foot").hidden = !LAYOUT.footer;
 
 if (!isConfigured) {

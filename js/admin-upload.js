@@ -1,5 +1,8 @@
-// 後台「圖片牆」分頁裡的「從手機或電腦上傳」：選檔案 → 存進 GitHub 專案的 media 資料夾 → 把路徑填進表單。
-// 純邏輯在 github-upload.js；這裡只處理畫面、設定的保存與流程。
+// 後台的「從手機或電腦上傳」：選檔案 → 存進 GitHub 專案的 media 資料夾 → 把路徑交給表單。
+// 純邏輯在 github-upload.js；這裡處理畫面、設定的保存與流程。
+//
+// 一份 GitHub 設定（專案名稱＋權杖）由所有選檔器共用：圖片牆分頁與網站設定分頁的上傳都用同一組，
+// 所以只要設定一次。設定面板放在「圖片牆」分頁；設定好之後整個面板會收起來，各處只留一個小連結。
 
 import {
   GhError,
@@ -17,7 +20,7 @@ import {
 const $ = (id) => document.getElementById(id);
 
 const REPO_KEY = "bball.ghRepo"; // 專案名稱與分支（不是秘密）：存在 localStorage
-const TOKEN_KEY = "bball.ghToken"; // 權杖：預設只放 sessionStorage，勾「記住」才放 localStorage
+const TOKEN_KEY = "bball.ghToken"; // 權杖：勾「記住」存在 localStorage，沒勾只放 sessionStorage
 
 // 瀏覽器可能封鎖儲存空間（無痕視窗等），所以每次都包 try/catch，讀不到就當作沒有
 const safe = (fn, fallback = null) => {
@@ -38,28 +41,41 @@ const keepToken = (token, remember) => {
   safe(() => (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token));
 };
 
+function say(el, text, kind = "") {
+  el.textContent = text;
+  el.hidden = !text;
+  el.classList.toggle("bad", kind === "bad");
+  el.classList.toggle("good", kind === "good");
+}
+
 /**
- * @param {{toast: Function, onUploaded: (path: string) => void}} deps
- *   onUploaded：上傳成功後，把「media/檔名」交給表單去填
+ * @param {{toast: Function, selectTab: (name: string) => void}} deps
  */
-export function setupUpload({ toast, onUploaded }) {
-  let session = 0; // 表單被重設或登出就加 1；舊的上傳完成後發現不一樣，就不去動表單
-  let busy = false;
+export function setupUpload({ toast, selectTab }) {
+  const pickers = [];
+  let busy = false; // 測試連線或上傳進行中：同一時間只做一件事
 
   const settings = () => {
     const saved = readJson(REPO_KEY) || {};
     const parsed = parseRepo(saved.repo);
     return { parsed, repo: saved.repo || "", branch: typeof saved.branch === "string" ? saved.branch : "", token: readToken() };
   };
+  const ready = () => {
+    const s = settings();
+    return !!(s.parsed && s.token);
+  };
 
-  function say(el, text, kind = "") {
-    el.textContent = text;
-    el.hidden = !text;
-    el.classList.toggle("bad", kind === "bad");
-    el.classList.toggle("good", kind === "good");
-  }
-  const upMsg = (text, kind) => say($("w-upload-msg"), text, kind);
   const ghMsg = (text, kind) => say($("gh-msg"), text, kind);
+
+  /* ---------- GitHub 設定面板 ---------- */
+
+  // 設定好了就把整個面板收起來，各處只留小連結；還沒設定（或要重新設定）才顯示面板
+  function paintPanel() {
+    const ok = ready();
+    $("ghBox").hidden = ok;
+    if (ok) $("ghBox").open = false;
+    for (const p of pickers) p.link.hidden = !ok;
+  }
 
   function paintSummary() {
     const s = settings();
@@ -71,36 +87,27 @@ export function setupUpload({ toast, onUploaded }) {
     paintPanel();
   }
 
-  // 設定好了就把整個設定面板收起來，只留一個小連結；還沒設定（或要重新設定）才顯示面板
-  function paintPanel() {
-    const s = settings();
-    const ready = !!(s.parsed && s.token);
-    $("ghBox").hidden = ready;
-    if (ready) $("ghBox").open = false;
-    $("ghShowBtn").hidden = !ready;
-  }
-
-  // 重新打開設定面板（點小連結、權杖失效、或還沒設定就選檔案時）
+  // 重新打開設定面板（點小連結、權杖失效、或還沒設定就選檔案時）。面板放在「圖片牆」分頁
   function showPanel() {
+    selectTab("wall");
     $("ghBox").hidden = false;
     $("ghBox").open = true;
-    $("ghShowBtn").hidden = true;
+    for (const p of pickers) p.link.hidden = true;
     $("ghBox").scrollIntoView?.({ behavior: "smooth", block: "start" });
   }
-
-  $("ghShowBtn").addEventListener("click", showPanel);
 
   function loadFields() {
     const s = settings();
     $("gh-repo").value = s.repo || guessRepo(globalThis.location);
     $("gh-branch").value = s.branch;
     $("gh-token").value = "";
-    $("gh-remember").checked = !!safe(() => localStorage.getItem(TOKEN_KEY));
+    // 預設勾「記住」，這樣關掉分頁、換天再開都不用重貼；只有之前明確選「不記住」（權杖只在這個分頁）才維持不勾
+    const inSession = !!safe(() => sessionStorage.getItem(TOKEN_KEY));
+    const inLocal = !!safe(() => localStorage.getItem(TOKEN_KEY));
+    $("gh-remember").checked = inLocal || !inSession;
     ghMsg("");
     paintSummary();
   }
-
-  /* ---------- GitHub 設定 ---------- */
 
   $("ghSaveBtn").addEventListener("click", async () => {
     if (busy) return;
@@ -134,7 +141,7 @@ export function setupUpload({ toast, onUploaded }) {
       paintSummary();
       const okText = `連線成功：${parsed.owner}/${parsed.repo}${r.branch ? `（預設分支 ${r.branch}）` : ""}。現在可以從手機或電腦上傳檔案了。`;
       ghMsg(okText, "good");
-      upMsg(okText, "good"); // 面板會自動收起來，所以在檔案欄下面也顯示一次
+      for (const p of pickers) p.say(okText, "good"); // 面板會自動收起來，所以在各個上傳欄下面也顯示一次
       toast("GitHub 上傳設定已儲存");
     } catch (e) {
       ghMsg(e instanceof GhError ? e.message : "測試失敗，請稍後再試。", "bad");
@@ -150,97 +157,132 @@ export function setupUpload({ toast, onUploaded }) {
     $("gh-repo").value = guessRepo(globalThis.location);
     $("gh-branch").value = "";
     $("gh-token").value = "";
-    $("gh-remember").checked = false;
+    $("gh-remember").checked = true; // 下次貼權杖時預設還是記住
     paintSummary();
     $("ghBox").open = true;
     ghMsg("已清除這台瀏覽器裡的 GitHub 設定與權杖。", "good");
   });
 
-  /* ---------- 選檔案並上傳 ---------- */
+  /* ---------- 選檔器 ---------- */
 
-  const resetPicker = () => {
-    $("w-file").value = "";
-  };
+  /**
+   * 把一個「選擇檔案」欄位接上上傳流程。
+   * @param {object} cfg
+   * @param {string} cfg.fileId     <input type="file"> 的 id
+   * @param {string} cfg.msgId      顯示進度與結果的段落 id
+   * @param {string} cfg.linkId     「更改上傳設定」小連結（按鈕）的 id
+   * @param {string[]} [cfg.lockIds] 上傳期間要一併停用的按鈕 id（例如儲存鈕）
+   * @param {string} cfg.saveHint   上傳成功後提示要按哪個鈕，例如「儲存」
+   * @param {(path: string) => void} cfg.onUploaded 上傳成功後把「media/檔名」交給表單
+   */
+  function picker({ fileId, msgId, linkId, lockIds = [], saveHint, onUploaded }) {
+    let session = 0; // 表單被重設或登出就加 1；舊的上傳完成後發現不一樣，就不去動表單
+    const file = () => $(fileId);
+    const msg = (text, kind) => say($(msgId), text, kind);
+    const resetPicker = () => {
+      file().value = "";
+    };
+    const lock = (on) => {
+      file().disabled = on;
+      for (const id of lockIds) $(id).disabled = on;
+    };
 
-  $("w-file").addEventListener("change", async () => {
-    const file = $("w-file").files?.[0];
-    if (!file) {
-      upMsg("");
-      return;
-    }
-    const problem = checkFile(file);
-    if (problem) {
-      upMsg(problem, "bad");
-      toast(problem, true);
-      resetPicker();
-      return;
-    }
-    const s = settings();
-    if (!s.parsed || !s.token) {
-      upMsg("還沒設定 GitHub 上傳。請先展開上面的「從手機或電腦上傳檔案的設定」，貼上權杖後再選一次檔案。", "bad");
-      showPanel();
-      resetPicker();
-      return;
-    }
+    pickers.push({
+      link: $(linkId),
+      say: msg,
+      drop() {
+        session += 1;
+        msg("");
+        resetPicker();
+      },
+    });
+    $(linkId).addEventListener("click", showPanel);
 
-    const name = safeFileName(file.name);
-    const path = `${MEDIA_DIR}/${name}`;
-    const mine = ++session;
-    busy = true;
-    $("w-file").disabled = true;
-    $("wallSaveBtn").disabled = true;
-    upMsg(`上傳「${file.name}」中…檔案越大越久，請不要關閉或離開這一頁。`);
-    try {
-      const base64 = await readBase64(file);
-      await uploadFile({ ...s.parsed, branch: s.branch, token: s.token, path, base64, message: `上傳圖片牆檔案 ${name}` });
-    } catch (e) {
-      const fixable = e instanceof GhError && [401, 403, 404].includes(e.status); // 權杖過期、權限不足、專案名稱不對
-      if (mine === session) upMsg((e instanceof GhError ? e.message : e?.message || "上傳失敗。") + (fixable ? " 已幫你打開上傳設定，可以更新後再試。" : ""), "bad");
-      toast(e instanceof GhError ? e.message : "上傳失敗。", true);
-      if (fixable) showPanel();
-      return;
-    } finally {
-      busy = false;
-      $("w-file").disabled = false;
-      $("wallSaveBtn").disabled = false;
-      resetPicker();
-    }
+    file().addEventListener("change", async () => {
+      const f = file().files?.[0];
+      if (!f) {
+        msg("");
+        return;
+      }
+      const problem = checkFile(f);
+      if (problem) {
+        msg(problem, "bad");
+        toast(problem, true);
+        resetPicker();
+        return;
+      }
+      const s = settings();
+      if (!s.parsed || !s.token) {
+        msg("還沒設定 GitHub 上傳。已幫你打開「圖片牆」分頁裡的設定，貼上權杖後再選一次檔案。", "bad");
+        showPanel();
+        resetPicker();
+        return;
+      }
+      if (busy) {
+        msg("還有另一個上傳或連線測試在進行，請等它完成再選。", "bad");
+        resetPicker();
+        return;
+      }
 
-    if (mine !== session) {
-      // 上傳到一半，表單被取消或重設了：檔案已經在專案裡，只提醒路徑
-      toast(`檔案已上傳到 ${path}，但表單已重設，需要的話請自己填入。`);
-      return;
-    }
-    onUploaded(path);
-    upMsg(`已上傳到專案：${path}。路徑已填進下面，按「儲存」就會加進圖片牆。網站重新發布要一兩分鐘，發布前前台會暫時顯示不出來…`, "good");
-    toast("上傳成功");
+      const name = safeFileName(f.name);
+      const path = `${MEDIA_DIR}/${name}`;
+      const mine = ++session;
+      busy = true;
+      lock(true);
+      msg(`上傳「${f.name}」中…檔案越大越久，請不要關閉或離開這一頁。`);
+      try {
+        const base64 = await readBase64(f);
+        await uploadFile({ ...s.parsed, branch: s.branch, token: s.token, path, base64, message: `上傳檔案 ${name}` });
+      } catch (e) {
+        const fixable = e instanceof GhError && [401, 403, 404].includes(e.status); // 權杖過期、權限不足、專案名稱不對
+        if (mine === session) msg((e instanceof GhError ? e.message : e?.message || "上傳失敗。") + (fixable ? " 已幫你打開上傳設定，可以更新後再試。" : ""), "bad");
+        toast(e instanceof GhError ? e.message : "上傳失敗。", true);
+        if (fixable) showPanel();
+        return;
+      } finally {
+        busy = false;
+        lock(false);
+        resetPicker();
+      }
 
-    // 背景等網站發布，好了再更新提示
-    const published = await waitOnline(new URL(path, globalThis.location.href).href, { shouldStop: () => mine !== session });
-    if (mine === session) {
-      upMsg(
-        published
-          ? `已上傳並發布：${path}，前台現在讀得到了。`
-          : `已上傳：${path}。網站還沒發布出來（有時要多等幾分鐘），可以先按「儲存」，稍後重新整理前台確認。`,
-        published ? "good" : ""
-      );
-    }
-  });
+      if (mine !== session) {
+        // 上傳到一半，表單被取消或重設了：檔案已經在專案裡，只提醒路徑
+        toast(`檔案已上傳到 ${path}，但表單已重設，需要的話請重新選擇檔案。`);
+        return;
+      }
+      onUploaded(path);
+      msg(`已上傳：${path}。按「${saveHint}」就會生效。網站重新發布要一兩分鐘，發布前會暫時顯示不出來…`, "good");
+      toast("上傳成功");
+
+      // 背景等網站發布，好了再更新提示
+      const published = await waitOnline(new URL(path, globalThis.location.href).href, { shouldStop: () => mine !== session });
+      if (mine === session) {
+        msg(
+          published
+            ? `已上傳並發布：${path}，現在讀得到了。記得按「${saveHint}」才會生效。`
+            : `已上傳：${path}。網站還沒發布出來（有時要多等幾分鐘），可以先按「${saveHint}」，稍後重新整理確認。`,
+          published ? "good" : ""
+        );
+      }
+    });
+
+    return {
+      /** 表單被重設（儲存完、取消編輯）：清掉上傳提示，並讓還在跑的上傳與等待作廢 */
+      reset() {
+        session += 1;
+        msg("");
+        resetPicker();
+      },
+    };
+  }
 
   loadFields();
 
   return {
-    /** 表單被重設（儲存完、取消編輯）：清掉上傳提示，並讓還在跑的上傳與等待作廢 */
-    reset() {
-      session += 1;
-      upMsg("");
-      resetPicker();
-    },
-    /** 登出：不留下只屬於這個分頁的權杖 */
+    picker,
+    /** 登出：讓所有進行中的上傳作廢，並清掉只屬於這個分頁的權杖 */
     stop() {
-      session += 1;
-      upMsg("");
-      resetPicker();
+      for (const p of pickers) p.drop();
       safe(() => sessionStorage.removeItem(TOKEN_KEY));
       loadFields();
     },
