@@ -27,13 +27,11 @@
   </header>
 
   <main id="top" class="wrap">
+    <h1 id="officeName" class="sr">躲B球辦事處</h1>
+
     <section id="hero" class="hero" aria-label="辦事處簡介" hidden>
-      <div>
-        <div class="sign">
-          <h1 id="officeName">躲B球辦事處</h1>
-          <p id="tagline" class="tagline" hidden></p>
-        </div>
-        <p id="welcome" class="welcome" hidden></p>
+      <div id="marquee" class="marquee" title="滑鼠移上去或點一下可以暫停" hidden>
+        <p id="welcome" class="marquee-text"></p>
       </div>
 
       <a id="called" class="called" href="#board">
@@ -66,35 +64,37 @@
         <li><p class="empty">載入公告中…</p></li>
       </ol>
     </section>
-
-    <section id="windows" class="section" aria-labelledby="windowsTitle" hidden>
-      <div class="section-head"><h2 id="windowsTitle" class="plate">服務窗口</h2></div>
-      <ul id="windowList" class="windows"></ul>
-    </section>
-
-    <section id="rules" class="section" aria-labelledby="rulesTitle" hidden>
-      <div class="section-head"><h2 id="rulesTitle" class="plate">辦事須知</h2></div>
-      <ol id="ruleList" class="articles"></ol>
-    </section>
-
-    <section id="info" class="section" aria-labelledby="infoTitle" hidden>
-      <div class="section-head"><h2 id="infoTitle" class="plate">辦公時間與連結</h2></div>
-      <div class="info">
-        <div id="hoursBox" hidden>
-          <h3>辦公時間</h3>
-          <p id="hours"></p>
-        </div>
-        <div id="linksBox" hidden>
-          <h3>相關連結</h3>
-          <ul id="linkList" class="links"></ul>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer id="foot" class="foot" hidden>
     <div class="wrap">
-      <p id="footerText"></p>
+      <div class="foot-sections">
+        <section id="windows" class="foot-section" aria-labelledby="windowsTitle" hidden>
+          <h2 id="windowsTitle" class="foot-title">服務窗口</h2>
+          <ul id="windowList" class="windows"></ul>
+        </section>
+
+        <section id="rules" class="foot-section" aria-labelledby="rulesTitle" hidden>
+          <h2 id="rulesTitle" class="foot-title">辦事須知</h2>
+          <ol id="ruleList" class="articles"></ol>
+        </section>
+
+        <section id="info" class="foot-section" aria-labelledby="infoTitle" hidden>
+          <h2 id="infoTitle" class="foot-title">辦公時間與連結</h2>
+          <div class="info">
+            <div id="hoursBox" hidden>
+              <h3>辦公時間</h3>
+              <p id="hours"></p>
+            </div>
+            <div id="linksBox" hidden>
+              <h3>相關連結</h3>
+              <ul id="linkList" class="links"></ul>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <p id="footerText" class="foot-text"></p>
     </div>
   </footer>
 

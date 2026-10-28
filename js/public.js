@@ -28,10 +28,10 @@ import { normalizeBackground, paintBackground } from "./background.js";
 
 // 版面開關：想關掉某個區塊，把對應的值改成 false 即可。
 const LAYOUT = {
-  hero: true, // 首屏：藍色招牌（名稱、標語、歡迎文字）
-  called: false, // 首屏右邊的「最新公告」叫號面板
-  extraSections: true, // 服務窗口、辦事須知、辦公時間與連結（沒填內容的不會出現）
-  footer: true, // 頁尾
+  hero: true, // 頁首下方的跑馬燈（標語、歡迎文字）
+  called: false, // 跑馬燈下方的「最新公告」叫號面板
+  extraSections: true, // 頁尾裡的服務窗口、辦事須知、辦公時間與連結（沒填內容的不會出現）
+  footer: true, // 整個頁尾（關掉的話，頁尾裡的區塊也跟著消失）
 };
 
 const $ = (id) => document.getElementById(id);
@@ -150,6 +150,45 @@ function renderBackground(s) {
   }
 }
 
+/* ---------- 跑馬燈（標語 + 歡迎文字） ---------- */
+
+const MARQUEE_SPEED = 70; // 每秒捲動幾個像素
+const marqueeBox = $("marquee");
+const marqueeText = $("welcome");
+let marqueeHtml = null;
+
+// 捲動時間 = （外框寬 + 文字寬）÷ 速度，文字長短不同，速度都一樣
+function fitMarquee() {
+  if (marqueeBox.hidden) return;
+  const secs = Math.max(8, marqueeText.scrollWidth / MARQUEE_SPEED);
+  marqueeText.style.setProperty("--marquee-time", `${secs.toFixed(1)}s`);
+}
+
+function syncHero() {
+  $("hero").hidden = !LAYOUT.hero || (marqueeBox.hidden && !LAYOUT.called);
+}
+
+// 標語在前，歡迎文字每一行各算一段；段與段之間留一段空白
+function renderMarquee(s) {
+  const parts = [s.tagline, ...String(s.welcome ?? "").split(/\r?\n/)].map((t) => String(t ?? "").trim()).filter(Boolean);
+  const html = parts.map((t) => `<span class="marquee-item">${formatText(t)}</span>`).join("");
+  if (html !== marqueeHtml) {
+    marqueeHtml = html;
+    marqueeText.innerHTML = html;
+    marqueeBox.hidden = parts.length === 0;
+    syncHero(); // 先讓外框顯示出來，量得到寬度才算得出捲動時間
+    fitMarquee();
+  }
+  syncHero();
+}
+
+marqueeBox.addEventListener("click", (e) => {
+  if (e.target.closest("a")) return; // 點連結照常開啟，不當成暫停
+  marqueeBox.classList.toggle("is-paused");
+});
+if (!reduceMotion && typeof ResizeObserver === "function") new ResizeObserver(fitMarquee).observe(marqueeBox);
+else window.addEventListener("resize", fitMarquee);
+
 function renderSettings(raw) {
   const s = { ...DEFAULT_SETTINGS, ...raw };
   const windows = Array.isArray(s.windows) ? s.windows : [];
@@ -162,10 +201,7 @@ function renderSettings(raw) {
   document.title = name;
   $("brandName").textContent = name;
   $("officeName").textContent = name;
-  $("tagline").textContent = s.tagline;
-  $("tagline").hidden = !s.tagline;
-  $("welcome").innerHTML = formatText(s.welcome);
-  $("welcome").hidden = !s.welcome;
+  renderMarquee(s);
 
   $("windowList").innerHTML = windows
     .map(
@@ -200,6 +236,7 @@ function renderSettings(raw) {
     .join("");
   $("linksBox").hidden = links.length === 0;
   toggleSection("info", Boolean(s.hours) || links.length > 0);
+  $("foot").classList.toggle("has-sections", ["windows", "rules", "info"].some((id) => !$(id).hidden));
 
   $("footerText").textContent = s.footer || name;
 
@@ -498,9 +535,8 @@ function showNotice(text) {
 
 /* ---------- 啟動 ---------- */
 
-$("hero").hidden = !LAYOUT.hero;
-$("hero").classList.toggle("solo", !LAYOUT.called);
 $("called").hidden = !LAYOUT.called;
+syncHero();
 $("foot").hidden = !LAYOUT.footer;
 
 if (!isConfigured) {

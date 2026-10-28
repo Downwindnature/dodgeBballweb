@@ -155,54 +155,72 @@ a {
   background: var(--blue-ink);
 }
 
-/* 首屏：招牌 + 叫號面板 */
+/* 首屏：跑馬燈（歡迎文字）+ 叫號面板（目前關閉） */
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: 40px;
-  align-items: center;
-  padding: 48px 0 40px;
-}
-
-/* 沒有叫號面板時，招牌佔滿整行 */
-.hero.solo {
   grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px 0 0;
 }
 
-.sign {
-  padding: 30px 34px 26px;
-  border-radius: 3px;
-  background: var(--blue);
-  color: #fff;
-  outline: 2px solid rgba(255, 255, 255, 0.85);
-  outline-offset: -10px;
-}
-
-.sign h1 {
-  margin: 0;
-  font-size: clamp(2rem, 5.5vw, 3.5rem);
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-
-.sign .tagline {
-  margin: 0.75rem 0 0;
-  color: #d5e3f0;
-  font-size: 1.0625rem;
-  font-weight: 500;
-}
-
-.welcome {
-  width: fit-content;
-  max-width: min(34em, 100%);
-  margin: 20px 0 0;
-  padding: 10px 14px;
+/* 跑馬燈：文字從右邊進來、往左邊出去，一直循環；滑鼠移上去或點一下暫停 */
+.marquee {
+  overflow: hidden;
+  border: 3px solid var(--line);
   border-radius: 3px;
   background: var(--paper-soft);
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+  cursor: pointer;
+}
+
+.marquee-text {
+  display: inline-block;
+  margin: 0;
+  /* 左邊留一個外框寬度：動畫起點是文字剛好在外框右邊外面，終點是整段文字跑出左邊 */
+  padding: 7px 0 7px 100%;
+  white-space: nowrap;
+  line-height: 1.5;
+  animation: marquee-run var(--marquee-time, 24s) linear infinite;
+  will-change: transform;
+}
+
+.marquee-item {
+  margin-right: 4em;
+}
+
+@keyframes marquee-run {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.marquee.is-paused .marquee-text {
+  animation-play-state: paused;
+}
+
+@media (hover: hover) {
+  .marquee:hover .marquee-text {
+    animation-play-state: paused;
+  }
+}
+
+/* 設定了「減少動態效果」：不捲動，整段文字直接顯示、需要時換行 */
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    cursor: auto;
+  }
+
+  .marquee-text {
+    display: block;
+    padding: 7px 14px;
+    white-space: normal;
+    animation: none;
+    overflow-wrap: anywhere;
+  }
+
+  .marquee-item {
+    display: inline-block;
+    margin-right: 1.5em;
+  }
 }
 
 .called {
@@ -477,10 +495,10 @@ a {
 }
 
 .window {
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-top: 0;
   border-radius: 0 0 3px 3px;
-  background: var(--paper);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .window-sign {
@@ -488,7 +506,7 @@ a {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: var(--blue);
+  background: rgba(255, 255, 255, 0.16);
   color: #fff;
 }
 
@@ -519,6 +537,7 @@ a {
 .window-desc {
   margin: 0;
   padding: 12px 14px 14px;
+  color: #d5e3f0;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -527,9 +546,7 @@ a {
 .articles {
   max-width: 46em;
   margin: 0;
-  padding: 4px 14px;
-  border-radius: 3px;
-  background: var(--paper-soft);
+  padding: 0;
   list-style: none;
 }
 
@@ -538,7 +555,7 @@ a {
   grid-template-columns: 5.5em minmax(0, 1fr);
   gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .article:last-child {
@@ -546,7 +563,7 @@ a {
 }
 
 .article-no {
-  color: var(--blue-ink);
+  color: var(--ticket);
   font-weight: 900;
 }
 
@@ -559,25 +576,19 @@ a {
 .info {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 32px;
-}
-
-/* 沒有卡片外框的文字區塊：墊一層半透明紙色，網站背景再花也讀得清楚 */
-.info > div {
-  padding: 12px 16px 14px;
-  border-radius: 3px;
-  background: var(--paper-soft);
+  gap: 28px;
 }
 
 .info h3 {
   margin: 0 0 8px;
-  color: var(--blue-ink);
-  font-size: 1.125rem;
+  color: #fff;
+  font-size: 1.0625rem;
   font-weight: 900;
 }
 
 .info p {
   margin: 0;
+  color: #d5e3f0;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -594,16 +605,16 @@ a {
 .links a {
   display: inline-block;
   padding: 0.35rem 0.9rem;
-  border: 2px solid var(--blue);
+  border: 2px solid rgba(255, 255, 255, 0.75);
   border-radius: 2px;
-  color: var(--blue-ink);
+  color: #fff;
   font-weight: 700;
   text-decoration: none;
 }
 
 .links a:hover {
-  background: var(--blue);
-  color: #fff;
+  background: #fff;
+  color: var(--blue-ink);
 }
 
 /* 按鈕（前台留言表單與後台共用） */
@@ -893,23 +904,44 @@ a {
 }
 
 .foot {
-  margin-top: 16px;
-  padding: 20px 0 28px;
+  margin-top: 40px;
+  padding: 32px 0 28px;
   background: var(--blue-ink);
   color: #c9d6e2;
   font-size: 0.9375rem;
 }
 
-.foot .wrap {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px 16px;
-}
-
 .foot p {
   margin: 0;
   white-space: pre-wrap;
+}
+
+/* 頁尾裡的區塊（服務窗口、辦事須知、辦公時間與連結） */
+.foot-sections {
+  display: grid;
+  gap: 32px;
+}
+
+.foot-title {
+  margin: 0 0 14px;
+  padding-left: 12px;
+  border-left: 4px solid var(--ticket);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+}
+
+.foot-text {
+  overflow-wrap: anywhere;
+}
+
+/* 上面有區塊時，頁尾文字和它們之間畫一條淡線 */
+.foot.has-sections .foot-text {
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 @media (max-width: 760px) {
@@ -918,13 +950,7 @@ a {
   }
 
   .hero {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
-    padding: 28px 0 24px;
-  }
-
-  .sign {
-    padding: 24px 24px 20px;
+    padding-top: 14px;
   }
 
   .stub-no {
