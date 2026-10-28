@@ -9,20 +9,20 @@
   <script type="importmap">
 {
   "imports": {
-    "./js/admin-bg.js": "./js/admin-bg.js?v=ad88a7750d",
-    "./js/admin-upload.js": "./js/admin-upload.js?v=ad88a7750d",
-    "./js/admin-wall.js": "./js/admin-wall.js?v=ad88a7750d",
-    "./js/admin.js": "./js/admin.js?v=ad88a7750d",
-    "./js/background.js": "./js/background.js?v=ad88a7750d",
-    "./js/defaults.js": "./js/defaults.js?v=ad88a7750d",
-    "./js/firebase-auth.js": "./js/firebase-auth.js?v=ad88a7750d",
-    "./js/firebase-config.js": "./js/firebase-config.js?v=ad88a7750d",
-    "./js/firebase.js": "./js/firebase.js?v=ad88a7750d",
-    "./js/github-upload.js": "./js/github-upload.js?v=ad88a7750d",
-    "./js/import.js": "./js/import.js?v=ad88a7750d",
-    "./js/public.js": "./js/public.js?v=ad88a7750d",
-    "./js/text.js": "./js/text.js?v=ad88a7750d",
-    "./js/wall.js": "./js/wall.js?v=ad88a7750d"
+    "./js/admin-bg.js": "./js/admin-bg.js?v=353083cfba",
+    "./js/admin-upload.js": "./js/admin-upload.js?v=353083cfba",
+    "./js/admin-wall.js": "./js/admin-wall.js?v=353083cfba",
+    "./js/admin.js": "./js/admin.js?v=353083cfba",
+    "./js/background.js": "./js/background.js?v=353083cfba",
+    "./js/defaults.js": "./js/defaults.js?v=353083cfba",
+    "./js/firebase-auth.js": "./js/firebase-auth.js?v=353083cfba",
+    "./js/firebase-config.js": "./js/firebase-config.js?v=353083cfba",
+    "./js/firebase.js": "./js/firebase.js?v=353083cfba",
+    "./js/github-upload.js": "./js/github-upload.js?v=353083cfba",
+    "./js/import.js": "./js/import.js?v=353083cfba",
+    "./js/public.js": "./js/public.js?v=353083cfba",
+    "./js/text.js": "./js/text.js?v=353083cfba",
+    "./js/wall.js": "./js/wall.js?v=353083cfba"
   }
 }
   </script>
@@ -32,8 +32,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=ad88a7750d">
-  <link rel="stylesheet" href="css/admin.css?v=ad88a7750d">
+  <link rel="stylesheet" href="css/style.css?v=353083cfba">
+  <link rel="stylesheet" href="css/admin.css?v=353083cfba">
 </head>
 <body>
   <header class="top">
@@ -310,7 +310,7 @@
           <div class="field">
             <label for="s-windows">服務窗口</label>
             <textarea id="s-windows" rows="5" maxlength="3000"></textarea>
-            <p class="hint">每行一個窗口，格式：窗口名稱｜說明（說明可以省略）。前台會自動編成 1 號、2 號窗口。</p>
+            <p class="hint">每行一個窗口，格式：窗口名稱｜說明（說明可以省略）。頁尾會把窗口名稱排成一行，有填說明的話顯示在名稱下面。</p>
           </div>
           <div class="field">
             <label for="s-rules">辦事須知</label>
@@ -324,7 +324,7 @@
           <div class="field">
             <label for="s-links">相關連結</label>
             <textarea id="s-links" rows="4" maxlength="2000"></textarea>
-            <p class="hint">每行一個，格式：名稱｜https://網址</p>
+            <p class="hint">每行一個，格式：名稱 https://網址（名稱和網址之間用空格或「｜」隔開）。名稱可以省略，只貼網址的話就直接顯示網址。顯示在頁尾，不填就不會出現。</p>
           </div>
           <div class="field">
             <label for="s-footer">頁尾文字</label>
@@ -340,7 +340,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="js/admin.js?v=ad88a7750d"></script>
+  <script type="module" src="js/admin.js?v=353083cfba"></script>
   <noscript><p class="notice">後台需要啟用 JavaScript。</p></noscript>
 </body>
 </html>

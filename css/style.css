@@ -5,6 +5,7 @@
   --wall: #e4e8e7;
   --paper: #fbfbf8;
   --paper-soft: rgba(251, 251, 248, 0.9);
+  --foot-muted: #b4c4d8;
   --blue: #17456e;
   --blue-ink: #0f3050;
   --night: #121518;
@@ -484,87 +485,53 @@ a {
   color: var(--muted);
 }
 
-/* 服務窗口 */
+/* 服務窗口：名稱排成一行，排不下就換行；有說明的話，說明顯示在名稱下面 */
 .windows {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.window {
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-top: 0;
-  border-radius: 0 0 3px 3px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.window-sign {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
-}
-
-.window-no {
-  display: grid;
-  flex: none;
-  place-items: center;
-  min-width: 2.25rem;
-  height: 2.25rem;
-  padding: 0 0.3rem;
-  border-radius: 2px;
-  background: #fff;
-  color: var(--blue-ink);
-  font-family: var(--font-led);
-  font-size: 1.5rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
 .window-title {
   margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
-  line-height: 1.4;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.7;
   overflow-wrap: anywhere;
 }
 
 .window-desc {
   margin: 0;
-  padding: 12px 14px 14px;
-  color: #d5e3f0;
+  color: var(--foot-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
-/* 辦事須知（條文） */
+/* 辦事須知（條文）：整塊置中，文字靠左好讀 */
 .articles {
-  max-width: 46em;
-  margin: 0;
+  max-width: 40em;
+  margin: 0 auto;
   padding: 0;
   list-style: none;
+  text-align: left;
 }
 
 .article {
   display: grid;
-  grid-template-columns: 5.5em minmax(0, 1fr);
+  grid-template-columns: 5em minmax(0, 1fr);
   gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-}
-
-.article:last-child {
-  border-bottom: 0;
+  padding: 4px 0;
 }
 
 .article-no {
-  color: var(--ticket);
-  font-weight: 900;
+  color: #fff;
+  font-weight: 700;
 }
 
 .article-text {
@@ -572,49 +539,26 @@ a {
   white-space: pre-wrap;
 }
 
-/* 辦公時間與連結 */
-.info {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 28px;
-}
-
-.info h3 {
-  margin: 0 0 8px;
-  color: #fff;
-  font-size: 1.0625rem;
-  font-weight: 900;
-}
-
-.info p {
-  margin: 0;
-  color: #d5e3f0;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
+/* 相關連結：純文字連結，排成一行 */
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  justify-content: center;
+  gap: 4px 24px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .links a {
-  display: inline-block;
-  padding: 0.35rem 0.9rem;
-  border: 2px solid rgba(255, 255, 255, 0.75);
-  border-radius: 2px;
   color: #fff;
-  font-weight: 700;
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
 }
 
 .links a:hover {
-  background: #fff;
-  color: var(--blue-ink);
+  color: var(--ticket);
 }
 
 /* 按鈕（前台留言表單與後台共用） */
@@ -905,10 +849,10 @@ a {
 
 .foot {
   margin-top: 40px;
-  padding: 32px 0 28px;
+  padding: 28px 0 26px;
   background: var(--blue-ink);
-  color: #c9d6e2;
-  font-size: 0.9375rem;
+  color: #e6edf5;
+  text-align: center;
 }
 
 .foot p {
@@ -916,32 +860,38 @@ a {
   white-space: pre-wrap;
 }
 
-/* 頁尾裡的區塊（服務窗口、辦事須知、辦公時間與連結） */
+/* 頁尾裡的區塊（服務窗口、辦事須知、辦公時間、相關連結）：全部置中、直接排下來 */
 .foot-sections {
   display: grid;
-  gap: 32px;
+  gap: 36px;
 }
 
 .foot-title {
-  margin: 0 0 14px;
-  padding-left: 12px;
-  border-left: 4px solid var(--ticket);
+  margin: 0 0 6px;
   color: #fff;
-  font-size: 1.25rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  line-height: 1.3;
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+/* 辦公時間和連結同時出現時，兩塊之間留一點距離 */
+.foot-block:not([hidden]) ~ .foot-block:not([hidden]) {
+  margin-top: 22px;
 }
 
 .foot-text {
+  color: var(--foot-muted);
+  font-size: 0.9375rem;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 /* 上面有區塊時，頁尾文字和它們之間畫一條淡線 */
 .foot.has-sections .foot-text {
   margin-top: 32px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  padding-top: 26px;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 @media (max-width: 760px) {

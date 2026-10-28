@@ -73,6 +73,25 @@ export function parsePairs(text) {
     .filter((p) => p.a);
 }
 
+// 連結：每行可以是「名稱｜網址」、「名稱 網址」（空格隔開）或只有網址（名稱就用網址本身）。
+// 回傳 [{ label, url }]；沒有網址的行 url 是空字串，由呼叫端決定要不要收。
+export function parseLinkLines(text) {
+  const bare = (u) => u.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  return parseLines(text)
+    .map((line) => {
+      const i = line.search(/[｜|]/);
+      if (i >= 0) {
+        const label = line.slice(0, i).trim();
+        const url = line.slice(i + 1).trim();
+        return { label: label || bare(url), url };
+      }
+      const m = /^(.*?)\s*(https?:\/\/\S+)$/i.exec(line);
+      if (m) return { label: m[1].trim() || bare(m[2]), url: m[2] };
+      return { label: line, url: "" };
+    })
+    .filter((l) => l.label);
+}
+
 export function pairsToText(list, keyA, keyB) {
   return (Array.isArray(list) ? list : [])
     .map((x) => (x[keyB] ? `${x[keyA]}｜${x[keyB]}` : x[keyA]))

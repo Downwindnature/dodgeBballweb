@@ -31,6 +31,7 @@ import {
   formatDateTime,
   padNo,
   parseLines,
+  parseLinkLines,
   parsePairs,
   pairsToText,
   safeUrl,
@@ -784,9 +785,9 @@ async function loadSettings() {
 
 $("setForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const linkPairs = parsePairs($("s-links").value);
-  const links = linkPairs.map((p) => ({ label: p.a, url: safeUrl(p.b) })).filter((l) => l.url);
-  const skipped = linkPairs.length - links.length;
+  const linkLines = parseLinkLines($("s-links").value);
+  const links = linkLines.map((l) => ({ label: l.label, url: safeUrl(l.url) })).filter((l) => l.url);
+  const skipped = linkLines.length - links.length;
 
   const data = {
     officeName: $("s-name").value.trim() || DEFAULT_SETTINGS.officeName,

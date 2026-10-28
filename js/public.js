@@ -214,11 +214,8 @@ function renderSettings(raw) {
 
   $("windowList").innerHTML = windows
     .map(
-      (w, i) => `<li class="window">
-        <div class="window-sign">
-          <span class="window-no">${i + 1}</span>
-          <h3 class="window-title"><span class="sr">窗口 </span>${escapeHtml(w.title)}</h3>
-        </div>
+      (w) => `<li class="window">
+        <h3 class="window-title"><span class="sr">窗口 </span>${escapeHtml(w.title)}</h3>
         ${w.desc ? `<p class="window-desc">${formatText(w.desc)}</p>` : ""}
       </li>`
     )
