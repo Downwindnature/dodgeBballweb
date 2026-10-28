@@ -4,25 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>躲B球辦事處</title>
-  <meta name="description" content="躲B球辦事處的公告欄、辦事須知與服務窗口。">
+  <meta name="description" content="躲B球辦事處的公告欄、辦事須知與聯絡窗口。">
   <!-- cache-bust:start -->
   <script type="importmap">
 {
   "imports": {
-    "./js/admin-bg.js": "./js/admin-bg.js?v=353083cfba",
-    "./js/admin-upload.js": "./js/admin-upload.js?v=353083cfba",
-    "./js/admin-wall.js": "./js/admin-wall.js?v=353083cfba",
-    "./js/admin.js": "./js/admin.js?v=353083cfba",
-    "./js/background.js": "./js/background.js?v=353083cfba",
-    "./js/defaults.js": "./js/defaults.js?v=353083cfba",
-    "./js/firebase-auth.js": "./js/firebase-auth.js?v=353083cfba",
-    "./js/firebase-config.js": "./js/firebase-config.js?v=353083cfba",
-    "./js/firebase.js": "./js/firebase.js?v=353083cfba",
-    "./js/github-upload.js": "./js/github-upload.js?v=353083cfba",
-    "./js/import.js": "./js/import.js?v=353083cfba",
-    "./js/public.js": "./js/public.js?v=353083cfba",
-    "./js/text.js": "./js/text.js?v=353083cfba",
-    "./js/wall.js": "./js/wall.js?v=353083cfba"
+    "./js/admin-bg.js": "./js/admin-bg.js?v=9be17e641d",
+    "./js/admin-chat.js": "./js/admin-chat.js?v=9be17e641d",
+    "./js/admin-upload.js": "./js/admin-upload.js?v=9be17e641d",
+    "./js/admin-wall.js": "./js/admin-wall.js?v=9be17e641d",
+    "./js/admin.js": "./js/admin.js?v=9be17e641d",
+    "./js/background.js": "./js/background.js?v=9be17e641d",
+    "./js/chat-account.js": "./js/chat-account.js?v=9be17e641d",
+    "./js/chat-core.js": "./js/chat-core.js?v=9be17e641d",
+    "./js/chat-data.js": "./js/chat-data.js?v=9be17e641d",
+    "./js/chat-media.js": "./js/chat-media.js?v=9be17e641d",
+    "./js/chat-ui.js": "./js/chat-ui.js?v=9be17e641d",
+    "./js/chat.js": "./js/chat.js?v=9be17e641d",
+    "./js/defaults.js": "./js/defaults.js?v=9be17e641d",
+    "./js/firebase-auth.js": "./js/firebase-auth.js?v=9be17e641d",
+    "./js/firebase-config.js": "./js/firebase-config.js?v=9be17e641d",
+    "./js/firebase.js": "./js/firebase.js?v=9be17e641d",
+    "./js/github-upload.js": "./js/github-upload.js?v=9be17e641d",
+    "./js/import.js": "./js/import.js?v=9be17e641d",
+    "./js/public.js": "./js/public.js?v=9be17e641d",
+    "./js/text.js": "./js/text.js?v=9be17e641d",
+    "./js/wall.js": "./js/wall.js?v=9be17e641d"
   }
 }
   </script>
@@ -32,7 +39,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=353083cfba">
+  <link rel="stylesheet" href="css/style.css?v=9be17e641d">
+  <link rel="stylesheet" href="css/chat.css?v=9be17e641d">
 </head>
 <body>
   <div id="siteBg" class="site-bg" aria-hidden="true" hidden></div>
@@ -92,7 +100,8 @@
     <div class="wrap">
       <div class="foot-sections">
         <section id="windows" class="foot-section" aria-labelledby="windowsTitle" hidden>
-          <h2 id="windowsTitle" class="foot-title">服務窗口</h2>
+          <h2 id="windowsTitle" class="foot-title">聯絡窗口</h2>
+          <p class="foot-hint">點選名字，就能傳私訊給對方</p>
           <ul id="windowList" class="windows"></ul>
         </section>
 
@@ -101,9 +110,9 @@
           <ol id="ruleList" class="articles"></ol>
         </section>
 
-        <section id="info" class="foot-section" aria-label="辦公時間與連結" hidden>
+        <section id="info" class="foot-section" aria-label="上線時間與連結" hidden>
           <div id="hoursBox" class="foot-block" hidden>
-            <h2 class="foot-title">辦公時間</h2>
+            <h2 class="foot-title">上線時間</h2>
             <p id="hours"></p>
           </div>
           <div id="linksBox" class="foot-block" hidden>
@@ -117,7 +126,7 @@
     </div>
   </footer>
 
-  <script type="module" src="js/public.js?v=353083cfba"></script>
+  <script type="module" src="js/public.js?v=9be17e641d"></script>
   <noscript><p class="notice">這個網站需要啟用 JavaScript 才能顯示公告。</p></noscript>
 </body>
 </html>

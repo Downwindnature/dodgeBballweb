@@ -16,8 +16,10 @@ import {
   query,
   where,
   orderBy,
+  limit,
   serverTimestamp,
   writeBatch,
+  Bytes,
 } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -27,6 +29,19 @@ export const isConfigured = Object.values(firebaseConfig).every(
 
 export const app = isConfigured ? initializeApp(firebaseConfig) : null;
 export const db = app ? getFirestore(app) : null;
+
+// 聯絡窗口的私訊帳號用「第二個」Firebase 連線登入，才不會把後台管理員的登入踢掉。
+// firebase-auth.js 的 getContactAuth() 會替這個連線設定「只存在記憶體」的登入狀態（關掉分頁就登出）。
+let contactApp = null;
+export function getContactApp() {
+  if (!isConfigured) return null;
+  contactApp ??= initializeApp(firebaseConfig, "contact");
+  return contactApp;
+}
+export function getContactDb() {
+  const a = getContactApp();
+  return a ? getFirestore(a) : null;
+}
 
 export {
   collection,
@@ -41,6 +56,8 @@ export {
   query,
   where,
   orderBy,
+  limit,
   serverTimestamp,
   writeBatch,
+  Bytes,
 };

@@ -80,5 +80,139 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // ===== 私訊（訪客 ↔ 聯絡窗口）=====
+    //
+    //   contacts/{cid}                                        聯絡窗口。cid 由窗口名稱算出；uid 是這個窗口的私訊帳號
+    //                                                         （空字串 = 尚未建立或已重設）。只有管理員能建立、重設。
+    //   contacts/{cid}/threads/{vid}                          某位訪客與這個窗口的整串對話。vid 是訪客瀏覽器自己產生的
+    //                                                         32 字元隨機碼，知道它才進得了這串對話（等於鑰匙），別人猜不到。
+    //   contacts/{cid}/threads/{vid}/messages/{mid}           一則訊息
+    //   contacts/{cid}/threads/{vid}/messages/{mid}/parts/{n} 圖片、GIF、影片、錄音的內容（切成每塊 900000 位元組以內，最多 8 塊）
+
+    function contactDocPath(cid) {
+      return /databases/$(database)/documents/contacts/$(cid);
+    }
+
+    // 這個窗口已經建立私訊帳號，訪客才傳得了訊息
+    function contactOpen(cid) {
+      return exists(contactDocPath(cid))
+        && get(contactDocPath(cid)).data.uid != '';
+    }
+
+    // 目前登入的人，就是這個窗口的私訊帳號
+    function isContact(cid) {
+      return request.auth != null
+        && exists(contactDocPath(cid))
+        && get(contactDocPath(cid)).data.uid == request.auth.uid;
+    }
+
+    function validContactDoc(cid, d) {
+      return cid.matches('^c[a-f0-9]{28}$')
+        && d.keys().hasOnly(['name', 'uid', 'gen', 'createdAt'])
+        && d.keys().hasAll(['name', 'uid', 'gen', 'createdAt'])
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 60
+        && d.uid is string && d.uid.size() <= 128
+        && d.gen is int && d.gen >= 0 && d.gen <= 1000
+        && d.createdAt == request.time;
+    }
+
+    // 媒體種類與檔案格式要對得上（不收 SVG 之類可能夾帶程式的格式）
+    function mimeMatchesKind(kind, mime) {
+      return (kind == 'image' && mime in ['image/jpeg', 'image/png', 'image/webp'])
+        || (kind == 'gif' && mime == 'image/gif')
+        || (kind == 'video' && mime in ['video/mp4', 'video/webm', 'video/quicktime'])
+        || (kind == 'audio' && mime in ['audio/mp4', 'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/aac', 'audio/x-m4a']);
+    }
+
+    function validMedia(kind, m) {
+      return m is map
+        && m.keys().hasAll(['mime', 'size', 'parts'])
+        && m.keys().hasOnly(['mime', 'size', 'parts', 'dur', 'w', 'h'])
+        && m.mime is string && mimeMatchesKind(kind, m.mime)
+        && m['size'] is int && m['size'] > 0 && m['size'] <= 6500000
+        && m.parts is int && m.parts >= 1 && m.parts <= 8
+        && m.parts * 900000 >= m['size'] && (m.parts - 1) * 900000 < m['size']
+        && (!('dur' in m) || (m.dur is number && m.dur >= 0 && m.dur <= 25))
+        && (!('w' in m) || (m.w is number && m.w > 0 && m.w <= 20000))
+        && (!('h' in m) || (m.h is number && m.h > 0 && m.h <= 20000));
+    }
+
+    // 訊息：文字 1–1000 字；圖片、GIF、影片、錄音要附 media，另可附說明文字；
+    // 時間必須是伺服器時間；side 只能是 visitor（訪客）或 contact（窗口本人）。
+    function validMessage(d, side) {
+      return d.keys().hasAll(['side', 'kind', 'createdAt'])
+        && d.keys().hasOnly(['side', 'kind', 'text', 'media', 'createdAt'])
+        && d.side == side
+        && d.createdAt == request.time
+        && d.kind in ['text', 'image', 'gif', 'video', 'audio']
+        && (!('text' in d) || (d.text is string && d.text.size() <= 1000))
+        && (d.kind == 'text'
+            ? ('text' in d && d.text.size() >= 1 && !('media' in d))
+            : ('media' in d && validMedia(d.kind, d.media)));
+    }
+
+    // 對話列表上的摘要（最後一則的時間、發話者、預覽）
+    function validThreadSummary(d, side) {
+      return d.lastSide == side
+        && d.lastPreview is string && d.lastPreview.size() <= 80
+        && d.lastAt == request.time;
+    }
+
+    function validVisitorThread(d) {
+      return d.label is string && d.label.size() >= 1 && d.label.size() <= 30
+        && validThreadSummary(d, 'visitor');
+    }
+
+    // 窗口本人只能改「已讀時間」，或在回覆時更新摘要與已讀時間
+    function validContactThreadUpdate() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let d = request.resource.data;
+      return (changed.hasOnly(['contactReadAt']) && d.contactReadAt == request.time)
+        || (changed.hasOnly(['lastAt', 'lastSide', 'lastPreview', 'contactReadAt'])
+            && d.contactReadAt == request.time
+            && validThreadSummary(d, 'contact'));
+    }
+
+    match /contacts/{cid} {
+      // 任何人可讀（訪客要知道這個窗口開通了沒有）；裡面只有名稱與帳號 UID
+      allow read: if true;
+      allow create, update: if isAdmin() && validContactDoc(cid, request.resource.data);
+      allow delete: if isAdmin();
+
+      match /threads/{vid} {
+        // 單筆讀取不用登入（訪客用自己的 vid 查看自己的對話）；列出所有對話只有窗口本人
+        allow get: if true;
+        allow list: if isContact(cid);
+        allow create: if vid.matches('^[a-f0-9]{32}$')
+          && contactOpen(cid)
+          && request.resource.data.keys().hasOnly(['label', 'lastAt', 'lastSide', 'lastPreview'])
+          && request.resource.data.keys().hasAll(['label', 'lastAt', 'lastSide', 'lastPreview'])
+          && validVisitorThread(request.resource.data);
+        allow update: if (contactOpen(cid)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label', 'lastAt', 'lastSide', 'lastPreview'])
+            && validVisitorThread(request.resource.data))
+          || (isContact(cid) && validContactThreadUpdate());
+        allow delete: if isContact(cid);
+
+        match /messages/{mid} {
+          allow read: if true;
+          allow create: if (isContact(cid) && validMessage(request.resource.data, 'contact'))
+            || (contactOpen(cid) && validMessage(request.resource.data, 'visitor'));
+          allow delete: if isContact(cid);
+
+          match /parts/{pid} {
+            allow read: if true;
+            allow create: if contactOpen(cid)
+              && pid.matches('^[0-7]$')
+              && request.resource.data.keys().hasOnly(['b'])
+              && request.resource.data.b is bytes
+              && request.resource.data.b.size() > 0
+              && request.resource.data.b.size() <= 900000;
+            allow delete: if isContact(cid);
+          }
+        }
+      }
+    }
   }
 }

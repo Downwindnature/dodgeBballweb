@@ -25,12 +25,13 @@ import {
 } from "./text.js";
 import { createWall } from "./wall.js";
 import { normalizeBackground, paintBackground } from "./background.js";
+import { initChat } from "./chat.js";
 
 // 版面開關：想關掉某個區塊，把對應的值改成 false 即可。
 const LAYOUT = {
   hero: true, // 頁首下方的跑馬燈（標語、歡迎文字）
   called: false, // 跑馬燈下方的「最新公告」叫號面板
-  extraSections: true, // 頁尾裡的服務窗口、辦事須知、辦公時間與連結（沒填內容的不會出現）
+  extraSections: true, // 頁尾裡的聯絡窗口、辦事須知、上線時間與連結（沒填內容的不會出現）
   footer: true, // 整個頁尾（關掉的話，頁尾裡的區塊也跟著消失）
 };
 
@@ -59,6 +60,7 @@ const NICK_KEY = "bball.nick";
 const LAST_KEY = "bball.lastComment";
 const COOLDOWN_MS = 20000; // 兩次留言至少間隔 20 秒（只能擋手滑連按，擋不了惡意程式）
 
+let chat = null; // 私訊小視窗（啟動失敗時維持 null，不影響公告）
 let items = []; // 已排序：置頂在前，其次號碼大到小
 let filter = "全部";
 let latest = null; // 號碼最大的公告，顯示在叫號面板
@@ -200,7 +202,9 @@ function renderSettingsSafely(raw) {
 
 function renderSettings(raw) {
   const s = { ...DEFAULT_SETTINGS, ...raw };
-  const windows = Array.isArray(s.windows) ? s.windows : [];
+  const windows = (Array.isArray(s.windows) ? s.windows : [])
+    .map((w) => ({ ...w, title: String(w?.title ?? "").trim() }))
+    .filter((w) => w.title);
   const rules = Array.isArray(s.rules) ? s.rules : [];
   const links = (Array.isArray(s.links) ? s.links : [])
     .map((l) => ({ label: String(l.label ?? ""), url: safeUrl(l.url) }))
@@ -215,12 +219,13 @@ function renderSettings(raw) {
   $("windowList").innerHTML = windows
     .map(
       (w) => `<li class="window">
-        <h3 class="window-title"><span class="sr">窗口 </span>${escapeHtml(w.title)}</h3>
+        <h3 class="window-title"><button type="button" class="window-name" data-name="${escapeHtml(w.title)}" title="傳私訊給 ${escapeHtml(w.title)}">${escapeHtml(w.title)}<span class="window-dot" hidden aria-hidden="true"></span></button></h3>
         ${w.desc ? `<p class="window-desc">${formatText(w.desc)}</p>` : ""}
       </li>`
     )
     .join("");
   toggleSection("windows", windows.length > 0);
+  chat?.setContacts(windows.map((w) => w.title));
 
   $("ruleList").innerHTML = rules
     .map(
@@ -544,6 +549,12 @@ function showNotice(text) {
 $("called").hidden = !LAYOUT.called;
 syncHero();
 $("foot").hidden = !LAYOUT.footer;
+
+try {
+  chat = initChat({ db: isConfigured ? db : null });
+} catch (err) {
+  console.error("私訊功能啟動失敗：", err);
+}
 
 if (!isConfigured) {
   showNotice("尚未連接資料庫，目前顯示的是範例內容。請先填寫 js/firebase-config.js。");

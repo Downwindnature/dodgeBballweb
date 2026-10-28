@@ -15,10 +15,10 @@ export const DEFAULT_SETTINGS = {
 
 export const DEMO_SETTINGS = {
   officeName: "躲B球辦事處",
-  tagline: "公告、須知與服務窗口，都在這裡。",
+  tagline: "公告、須知與聯絡窗口，都在這裡。",
   welcome:
     "這是範例內容，用來預覽版面。\n連接 Firebase 之後，這裡會換成你在後台寫的歡迎文字。",
-  hours: "（範例）請到後台的「網站設定」填入辦公時間。",
+  hours: "（範例）請到後台的「網站設定」填入上線時間。",
   windows: [
     { title: "窗口名稱 A", desc: "（範例）在這裡說明這個窗口辦理什麼事。" },
     { title: "窗口名稱 B", desc: "（範例）每個窗口可以有自己的說明。" },

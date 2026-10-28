@@ -9,20 +9,27 @@
   <script type="importmap">
 {
   "imports": {
-    "./js/admin-bg.js": "./js/admin-bg.js?v=353083cfba",
-    "./js/admin-upload.js": "./js/admin-upload.js?v=353083cfba",
-    "./js/admin-wall.js": "./js/admin-wall.js?v=353083cfba",
-    "./js/admin.js": "./js/admin.js?v=353083cfba",
-    "./js/background.js": "./js/background.js?v=353083cfba",
-    "./js/defaults.js": "./js/defaults.js?v=353083cfba",
-    "./js/firebase-auth.js": "./js/firebase-auth.js?v=353083cfba",
-    "./js/firebase-config.js": "./js/firebase-config.js?v=353083cfba",
-    "./js/firebase.js": "./js/firebase.js?v=353083cfba",
-    "./js/github-upload.js": "./js/github-upload.js?v=353083cfba",
-    "./js/import.js": "./js/import.js?v=353083cfba",
-    "./js/public.js": "./js/public.js?v=353083cfba",
-    "./js/text.js": "./js/text.js?v=353083cfba",
-    "./js/wall.js": "./js/wall.js?v=353083cfba"
+    "./js/admin-bg.js": "./js/admin-bg.js?v=9be17e641d",
+    "./js/admin-chat.js": "./js/admin-chat.js?v=9be17e641d",
+    "./js/admin-upload.js": "./js/admin-upload.js?v=9be17e641d",
+    "./js/admin-wall.js": "./js/admin-wall.js?v=9be17e641d",
+    "./js/admin.js": "./js/admin.js?v=9be17e641d",
+    "./js/background.js": "./js/background.js?v=9be17e641d",
+    "./js/chat-account.js": "./js/chat-account.js?v=9be17e641d",
+    "./js/chat-core.js": "./js/chat-core.js?v=9be17e641d",
+    "./js/chat-data.js": "./js/chat-data.js?v=9be17e641d",
+    "./js/chat-media.js": "./js/chat-media.js?v=9be17e641d",
+    "./js/chat-ui.js": "./js/chat-ui.js?v=9be17e641d",
+    "./js/chat.js": "./js/chat.js?v=9be17e641d",
+    "./js/defaults.js": "./js/defaults.js?v=9be17e641d",
+    "./js/firebase-auth.js": "./js/firebase-auth.js?v=9be17e641d",
+    "./js/firebase-config.js": "./js/firebase-config.js?v=9be17e641d",
+    "./js/firebase.js": "./js/firebase.js?v=9be17e641d",
+    "./js/github-upload.js": "./js/github-upload.js?v=9be17e641d",
+    "./js/import.js": "./js/import.js?v=9be17e641d",
+    "./js/public.js": "./js/public.js?v=9be17e641d",
+    "./js/text.js": "./js/text.js?v=9be17e641d",
+    "./js/wall.js": "./js/wall.js?v=9be17e641d"
   }
 }
   </script>
@@ -32,8 +39,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=353083cfba">
-  <link rel="stylesheet" href="css/admin.css?v=353083cfba">
+  <link rel="stylesheet" href="css/style.css?v=9be17e641d">
+  <link rel="stylesheet" href="css/admin.css?v=9be17e641d">
+  <link rel="stylesheet" href="css/chat.css?v=9be17e641d">
 </head>
 <body>
   <header class="top">
@@ -90,6 +98,7 @@
         <button id="tab-todo" type="button" role="tab" aria-selected="false" aria-controls="panel-todo">待辦事項<span id="todoBadge" class="tab-badge" hidden></span></button>
         <button id="tab-wall" type="button" role="tab" aria-selected="false" aria-controls="panel-wall">圖片牆</button>
         <button id="tab-set" type="button" role="tab" aria-selected="false" aria-controls="panel-set">網站設定</button>
+        <button id="tab-chat" type="button" role="tab" aria-selected="false" aria-controls="panel-chat">私訊</button>
         <a class="tabs-link" href="index.html">開啟前台</a>
       </div>
 
@@ -291,7 +300,7 @@
 
         <form id="setForm" class="panel" autocomplete="off">
           <h2>網站設定</h2>
-          <p class="hint">標語與歡迎文字顯示在網頁最上方的跑馬燈；服務窗口、辦事須知、辦公時間與連結、頁尾文字顯示在網頁最下方的頁尾。</p>
+          <p class="hint">標語與歡迎文字顯示在網頁最上方的跑馬燈；聯絡窗口、辦事須知、上線時間與連結、頁尾文字顯示在網頁最下方的頁尾。</p>
           <div class="field">
             <label for="s-name">網站名稱</label>
             <input id="s-name" type="text" maxlength="60">
@@ -308,7 +317,7 @@
             <p class="hint">顯示在跑馬燈。每一行是一段，段與段之間會留一段空白。訪客把滑鼠移上去或點一下可以暫停。</p>
           </div>
           <div class="field">
-            <label for="s-windows">服務窗口</label>
+            <label for="s-windows">聯絡窗口</label>
             <textarea id="s-windows" rows="5" maxlength="3000"></textarea>
             <p class="hint">每行一個窗口，格式：窗口名稱｜說明（說明可以省略）。頁尾會把窗口名稱排成一行，有填說明的話顯示在名稱下面。</p>
           </div>
@@ -318,7 +327,7 @@
             <p class="hint">每行一條，前台會自動編成第一條、第二條。</p>
           </div>
           <div class="field">
-            <label for="s-hours">辦公時間</label>
+            <label for="s-hours">上線時間</label>
             <textarea id="s-hours" rows="3" maxlength="500"></textarea>
           </div>
           <div class="field">
@@ -335,12 +344,16 @@
           </div>
         </form>
       </div>
+
+      <div id="panel-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+        <div id="chatRoot"></div>
+      </div>
     </section>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="js/admin.js?v=353083cfba"></script>
+  <script type="module" src="js/admin.js?v=9be17e641d"></script>
   <noscript><p class="notice">後台需要啟用 JavaScript。</p></noscript>
 </body>
 </html>

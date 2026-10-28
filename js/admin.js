@@ -22,6 +22,7 @@ import { parseImport, MAX_FILE_BYTES } from "./import.js";
 import { setupUpload } from "./admin-upload.js";
 import { setupWallAdmin } from "./admin-wall.js";
 import { setupBackgroundAdmin } from "./admin-bg.js";
+import { setupChatAdmin } from "./admin-chat.js";
 import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "./firebase-auth.js";
 import { adminEmailDomain, emailAliases } from "./firebase-config.js";
 import { DEFAULT_SETTINGS } from "./defaults.js";
@@ -39,7 +40,7 @@ import {
 
 const $ = (id) => document.getElementById(id);
 const VIEWS = ["loading", "setup", "login", "denied", "app"];
-const TABS = ["ann", "todo", "wall", "set"];
+const TABS = ["ann", "todo", "wall", "set", "chat"];
 
 const store = {
   get(key) {
@@ -757,6 +758,7 @@ $("todoList").addEventListener("click", async (e) => {
 const upload = setupUpload({ toast, selectTab });
 const wallAdmin = setupWallAdmin({ run, toast, selectTab, upload });
 const bgAdmin = setupBackgroundAdmin({ run, toast, upload });
+const chatAdmin = setupChatAdmin({ root: $("chatRoot"), toast });
 
 /* ---------- 網站設定 ---------- */
 
@@ -829,6 +831,7 @@ function stopAll() {
   $("todoBadge").hidden = true;
   wallAdmin.stop();
   bgAdmin.stop();
+  chatAdmin.stop();
   upload.stop();
 }
 
@@ -874,6 +877,7 @@ function startApp(user) {
   );
 
   wallAdmin.start(denied);
+  chatAdmin.start();
   loadSettings();
 }
 

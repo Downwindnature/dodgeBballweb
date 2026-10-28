@@ -485,7 +485,7 @@ a {
   color: var(--muted);
 }
 
-/* 服務窗口：名稱排成一行，排不下就換行；有說明的話，說明顯示在名稱下面 */
+/* 聯絡窗口：名稱排成一行，排不下就換行；有說明的話，說明顯示在名稱下面 */
 .windows {
   display: flex;
   flex-wrap: wrap;
@@ -860,7 +860,7 @@ a {
   white-space: pre-wrap;
 }
 
-/* 頁尾裡的區塊（服務窗口、辦事須知、辦公時間、相關連結）：全部置中、直接排下來 */
+/* 頁尾裡的區塊（聯絡窗口、辦事須知、上線時間、相關連結）：全部置中、直接排下來 */
 .foot-sections {
   display: grid;
   gap: 36px;
@@ -875,7 +875,7 @@ a {
   line-height: 1.5;
 }
 
-/* 辦公時間和連結同時出現時，兩塊之間留一點距離 */
+/* 上線時間和連結同時出現時，兩塊之間留一點距離 */
 .foot-block:not([hidden]) ~ .foot-block:not([hidden]) {
   margin-top: 22px;
 }
