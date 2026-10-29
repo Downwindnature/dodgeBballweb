@@ -10,7 +10,7 @@ const KEY_NICK = "bball.chat.nick";
 const KEY_SEEN = "bball.chat.seen"; // { 窗口代碼: 已看過的最後一則窗口訊息時間(毫秒) }
 const KEY_KNOWN = "bball.chat.known"; // { 窗口代碼: 1 } 傳過訊息的窗口，才需要監看有沒有回覆
 const KEY_LAST = "bball.chat.last"; // 上次聊的窗口代碼
-const KEY_POS = "bball.chat.pos"; // 圓形按鈕被拖到哪裡：{ r: 離右邊, b: 離下面 }（像素）
+const KEY_POS = "bball.chat.pos"; // 按鈕／視窗被拖到哪裡：{ r: 離右邊, b: 離下面, h?, v? }（像素）
 
 const FAB_SIZE = 58;
 const EDGE = 8; // 按鈕與視窗離畫面邊緣至少留這麼多
@@ -62,7 +62,7 @@ export function initChat({ db }) {
   const head = el("header", "chat-head");
   const titleBtn = el("button", "chat-title");
   titleBtn.type = "button";
-  titleBtn.title = "換一位窗口";
+  titleBtn.title = "換一位窗口（按住標題列可以拖動視窗）";
   const titleName = el("span", "", "私訊");
   titleBtn.append(titleName, el("small", "", "▾ 換人"));
   const closeBtn = el("button", "chat-x", "×");
@@ -89,74 +89,137 @@ export function initChat({ db }) {
   root.append(fab, panel);
   document.body.append(root);
 
-  /* ---------- 圓形按鈕：可以用滑鼠或手指拖到喜歡的位置 ---------- */
+  /* ---------- 拖曳：圓形按鈕、展開後的視窗（按住標題列）都可以用滑鼠或手指拖到喜歡的位置 ---------- */
 
+  // 位置是 { r: 離右邊, b: 離下面 }；拖過視窗的話還會記 h、v（視窗以哪個角對齊按鈕），關起來再打開才會在原處
   let pos = store.getJSON(KEY_POS, null);
-  if (pos && !(Number.isFinite(pos.r) && Number.isFinite(pos.b))) pos = null;
-  let drag = null;
+  if (pos && Number.isFinite(pos.r) && Number.isFinite(pos.b)) {
+    const anchored = ["left", "right"].includes(pos.h) && ["top", "bottom"].includes(pos.v);
+    pos = anchored ? { r: pos.r, b: pos.b, h: pos.h, v: pos.v } : { r: pos.r, b: pos.b };
+  } else {
+    pos = null;
+  }
   let justDragged = false;
 
   const viewport = () => ({ w: window.innerWidth, h: window.innerHeight });
 
+  function setRootPos(r, b) {
+    root.style.right = r + "px";
+    root.style.bottom = b + "px";
+  }
+
   function applyPos() {
     if (!pos) return;
     const v = viewport();
-    pos = { r: clamp(pos.r, EDGE, v.w - FAB_SIZE - EDGE), b: clamp(pos.b, EDGE, v.h - FAB_SIZE - EDGE) };
-    root.style.right = pos.r + "px";
-    root.style.bottom = pos.b + "px";
+    pos = { ...pos, r: clamp(pos.r, EDGE, v.w - FAB_SIZE - EDGE), b: clamp(pos.b, EDGE, v.h - FAB_SIZE - EDGE) };
+    setRootPos(pos.r, pos.b);
   }
 
-  fab.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    const rect = root.getBoundingClientRect();
-    const v = viewport();
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, r: v.w - rect.right, b: v.h - rect.bottom, moved: false };
-    // 一按下就抓住這個指標：滑鼠移得很快、移出按鈕範圍也不會斷掉
-    try {
-      fab.setPointerCapture?.(e.pointerId);
-    } catch {
-      /* 略過 */
+  // 通用的拖曳：按下 → 移動超過 DRAG_START 像素才算拖曳（否則是點一下）→ 放開。
+  // 移動與放開都聽 window，所以滑鼠甩得再快、移出標題列也不會斷掉。
+  function makeDraggable(handle, { skip, begin, move, end }) {
+    let d = null;
+    const stopListening = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+    };
+    function onMove(e) {
+      if (!d || e.pointerId !== d.id) return;
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      if (!d.moved) {
+        if (Math.hypot(dx, dy) < DRAG_START) return;
+        d.moved = true;
+        root.classList.add("is-dragging");
+      }
+      move(d.state, dx, dy);
     }
-  });
-  fab.addEventListener("pointermove", (e) => {
-    if (!drag || e.pointerId !== drag.id) return;
-    const dx = e.clientX - drag.x;
-    const dy = e.clientY - drag.y;
-    if (!drag.moved) {
-      if (Math.hypot(dx, dy) < DRAG_START) return;
-      drag.moved = true;
-      root.classList.add("is-dragging");
+    function onEnd(e) {
+      if (!d || e.pointerId !== d.id) return;
+      const { moved, state } = d;
+      d = null;
+      stopListening();
+      root.classList.remove("is-dragging");
+      if (moved) {
+        end(state);
+        // 拖完放開時瀏覽器還會補一個 click，要略過，不然一放手視窗就展開、或跳出換人清單
+        justDragged = true;
+        setTimeout(() => (justDragged = false), 60);
+      }
     }
-    pos = { r: drag.r - dx, b: drag.b - dy };
-    applyPos();
-  });
-  const endDrag = (e) => {
-    if (!drag || e.pointerId !== drag.id) return;
-    const moved = drag.moved;
-    drag = null;
-    root.classList.remove("is-dragging");
-    if (moved) {
+    handle.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (skip?.(e.target)) return;
+      d = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, state: begin() };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onEnd);
+      window.addEventListener("pointercancel", onEnd);
+    });
+  }
+
+  // 圓形按鈕（收起來的時候）
+  makeDraggable(fab, {
+    begin() {
+      const rect = root.getBoundingClientRect();
+      const v = viewport();
+      return { r: v.w - rect.right, b: v.h - rect.bottom };
+    },
+    move(s, dx, dy) {
+      pos = { r: s.r - dx, b: s.b - dy }; // 拖按鈕＝重新決定位置，視窗之後依按鈕位置自動選方向
+      applyPos();
+    },
+    end() {
       store.setJSON(KEY_POS, pos);
-      // 拖完放開時瀏覽器還會補一個 click，要略過，不然一放手視窗就展開了
-      justDragged = true;
-      setTimeout(() => (justDragged = false), 60);
-    }
-  };
-  fab.addEventListener("pointerup", endDrag);
-  fab.addEventListener("pointercancel", endDrag);
+    },
+  });
+
+  // 展開後的視窗：按住標題列拖。視窗始終留在畫面內；收起來時圓形按鈕會回到視窗原本對齊的那個角落。
+  makeDraggable(head, {
+    skip: (t) => Boolean(t.closest?.(".chat-x")),
+    begin() {
+      const rect = panel.getBoundingClientRect();
+      return { x: rect.left, y: rect.top, w: rect.width, h: rect.height, ah: root.dataset.h || "right", av: root.dataset.v || "bottom" };
+    },
+    move(s, dx, dy) {
+      const v = viewport();
+      const left = clamp(s.x + dx, EDGE, v.w - EDGE - s.w);
+      const top = clamp(s.y + dy, EDGE, v.h - EDGE - s.h);
+      // 視窗的哪個角和按鈕對齊就依哪個角換算，這樣視窗位置就是手指／滑鼠指的位置
+      const r = s.ah === "left" ? v.w - left - FAB_SIZE : v.w - (left + s.w);
+      const b = s.av === "top" ? v.h - top - FAB_SIZE : v.h - (top + s.h);
+      pos = { r, b, h: s.ah, v: s.av };
+      panel.style.transform = "";
+      setRootPos(pos.r, pos.b);
+    },
+    end() {
+      store.setJSON(KEY_POS, pos);
+    },
+  });
+  head.addEventListener(
+    "click",
+    (e) => {
+      if (justDragged) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    },
+    true
+  );
+
   window.addEventListener("resize", () => {
     applyPos();
     if (isOpen) placePanel();
   });
   applyPos();
 
-  // 小視窗從按鈕所在的那一角展開：按鈕在左半邊就往右展開、在上半邊就往下展開，
+  // 小視窗從按鈕所在的那一角展開：按鈕在左半邊就往右展開、在上半邊就往下展開（拖過視窗的話沿用上次的角落），
   // 最後再確認整個視窗都在畫面內（手機或按鈕靠近邊緣時會自動挪進來）
   function placePanel() {
     const v = viewport();
     const r = root.getBoundingClientRect();
-    root.dataset.h = r.left + FAB_SIZE / 2 < v.w / 2 ? "left" : "right";
-    root.dataset.v = r.top + FAB_SIZE / 2 < v.h / 2 ? "top" : "bottom";
+    root.dataset.h = pos?.h ?? (r.left + FAB_SIZE / 2 < v.w / 2 ? "left" : "right");
+    root.dataset.v = pos?.v ?? (r.top + FAB_SIZE / 2 < v.h / 2 ? "top" : "bottom");
     panel.style.transform = "";
     const p = panel.getBoundingClientRect();
     if (!p.width) return; // 還沒有版面資訊（測試環境）

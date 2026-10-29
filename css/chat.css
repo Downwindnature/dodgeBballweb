@@ -456,6 +456,21 @@
   padding: 10px 8px 10px 14px;
   background: var(--chat-purple);
   color: #fff;
+  cursor: grab; /* 按住標題列可以拖動整個視窗 */
+  touch-action: none; /* 手指拖的時候頁面不跟著捲 */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chat.is-dragging,
+.chat.is-dragging * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chat.is-dragging .chat-head,
+.chat.is-dragging .chat-head * {
+  cursor: grabbing;
 }
 
 .chat-title {
@@ -473,7 +488,7 @@
   font-size: 1.0625rem;
   font-weight: 700;
   text-align: left;
-  cursor: pointer;
+  cursor: grab; /* 點一下是換人，按住拖是移動視窗 */
 }
 
 .chat-title:hover {
