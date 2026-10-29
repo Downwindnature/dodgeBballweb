@@ -815,7 +815,6 @@ function stopAll() {
 
 function startApp(user) {
   const username = (user.email || "").split("@")[0];
-  $("userEmail").textContent = username;
   $("deniedEmail").textContent = username;
   showView("app");
   selectTab("ann");

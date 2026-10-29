@@ -90,20 +90,10 @@ code {
   display: none;
 }
 
-/* 右上角（帳號名稱旁）的「開啟前台」 */
+/* 右上角「登出」旁的「開啟前台」：樣式與「登出」同一個按鈕（.btn.ghost.small），只是它是連結，所以要去掉底線 */
 .userbox .front-link {
-  padding: 0.2rem 0.6rem;
-  border: 1px solid var(--blue);
-  border-radius: 2px;
-  background: rgba(23, 69, 110, 0.07);
-  color: var(--blue-ink);
-  font-size: 0.875rem;
-  text-decoration: underline;
-}
-
-.userbox .front-link:hover {
-  background: var(--blue);
-  color: #fff;
+  display: inline-block;
+  text-decoration: none;
 }
 
 /* 表單 */
