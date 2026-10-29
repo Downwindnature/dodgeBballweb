@@ -9,7 +9,7 @@ const TODO_TITLE_MAX = 200;
 const TODO_DETAIL_MAX = 2000;
 
 const TODO_FIELDS = ["title", "detail", "done", "createdBy"];
-const INTERNAL_FIELDS = ["type", "title", "body", "media", "url", "createdBy"];
+const INTERNAL_FIELDS = ["type", "title", "body", "media", "url", "pinned", "createdBy"];
 
 // 讀出清單：最外層可以是陣列，或是 { "todos": [ … ] } / { "internal": [ … ] }。
 // 回傳 { list } 或 { error }
@@ -109,6 +109,7 @@ export function parseTodoImport(text, existingTitles = []) {
  *   body   內容（選填）
  *   media  附加的圖片、GIF、MP4：media 資料夾裡的檔案（media/a.png）或 https:// 網址（選填）
  *   url    快速連結要開啟的網址（link 必填）
+ *   pinned 是否置頂（true/false，預設 false）
  *   createdBy 署名（選填，留空就用匯入時的署名）
  * @returns {{items: object[], errors: string[], warnings: string[]}}
  */
@@ -141,6 +142,12 @@ export function parseInternalImport(text, existingTitles = []) {
     if (raw.url !== undefined && typeof raw.url !== "string") bad("url 要是文字（網址）。");
     const createdBy = optText(raw, "createdBy", NAME_MAX, bad);
 
+    let pinned = false;
+    if (raw.pinned !== undefined) {
+      if (typeof raw.pinned !== "boolean") bad("pinned 要是 true 或 false（不要加引號）。");
+      else pinned = raw.pinned;
+    }
+
     if (kind === "post" && typeof url === "string" && url.trim()) {
       warn("一般公告用不到 url，會被忽略；要做成快速連結請把 type 設成 \"link\"。");
     }
@@ -153,9 +160,9 @@ export function parseInternalImport(text, existingTitles = []) {
         if (e.startsWith("請填連結網址")) continue;
         bad(e);
       }
-      return { kind, title: title ?? "", body, media: c.data.media, url: c.data.url, createdBy };
+      return { kind, title: title ?? "", body, media: c.data.media, url: c.data.url, pinned, createdBy };
     }
-    return { kind, title: title ?? "", body, media: "", url: "", createdBy };
+    return { kind, title: title ?? "", body, media: "", url: "", pinned, createdBy };
   });
   return result;
 }

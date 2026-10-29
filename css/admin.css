@@ -831,6 +831,24 @@ a.link-card:focus-visible {
   grid-template-columns: 112px minmax(0, 1fr) auto;
 }
 
+/* 置頂的內部公告：左邊一條黃色粗線，「置頂」按鈕按下去是黃底 */
+.row.internal.is-pinned {
+  padding-left: 13px;
+  border-left: 4px solid var(--ticket);
+}
+
+.row-actions button[data-act="pin"][aria-pressed="true"] {
+  border-color: var(--ticket);
+  background: var(--ticket);
+  color: #2b2200;
+}
+
+.row-actions button[data-act="pin"][aria-pressed="true"]:hover {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+
 /* 快速連結：左邊圖片（沒有圖也留著方框）、右邊名稱與內容，整塊點下去開啟網址 */
 .link-card {
   display: grid;
@@ -1071,6 +1089,20 @@ html.viewer-open {
   .row.internal {
     grid-template-columns: minmax(0, 1fr);
     padding-left: 12px;
+  }
+
+  .row.internal.is-pinned {
+    padding-left: 9px;
+  }
+
+  /* 五顆按鈕（置頂、上移、下移、編輯、刪除）在手機上盡量排成一行 */
+  .row.internal .row-actions {
+    gap: 4px;
+  }
+
+  .row.internal .row-actions button {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.875rem;
   }
 
   .row.internal.has-thumb {

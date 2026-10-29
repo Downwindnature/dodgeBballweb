@@ -30,7 +30,8 @@ service cloud.firestore {
 
     // 內部公告：kind 'post' 是一般公告（標題＋內容＋選填的附圖或影片）；
     // 'link' 是快速連結（名稱＋內容＋選填的縮圖，點下去開 url，所以一定要有 url）。
-    // media 是 media/ 資料夾裡的相對路徑或 http(s) 網址；order 只用來讓同一批匯入的項目維持檔案裡的先後順序。
+    // media 是 media/ 資料夾裡的相對路徑或 http(s) 網址；order 只用來讓同一批匯入的項目維持檔案裡的先後順序；
+    // pinned 是否置頂；rank 是手動上移／下移後記下的順序（0 代表沒有手動排過，數字越大越前面）。
     function validInternal(d) {
       return d.kind in ['post', 'link']
         && d.title is string && d.title.size() > 0 && d.title.size() <= 120
@@ -41,7 +42,9 @@ service cloud.firestore {
         && (d.url == '' || d.url.matches('^https?://.*'))
         && (d.kind == 'post' || d.url != '')
         && d.createdBy is string && d.createdBy.size() <= 20
-        && (!('order' in d) || (d.order is int && d.order >= 0 && d.order <= 100000));
+        && (!('order' in d) || (d.order is int && d.order >= 0 && d.order <= 100000))
+        && (!('pinned' in d) || d.pinned is bool)
+        && (!('rank' in d) || (d.rank is int && d.rank >= 0 && d.rank <= 100000));
     }
 
     // 留言格式：欄位固定，暱稱 1–20 字，內容 1–500 字，時間必須是伺服器時間。

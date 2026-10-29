@@ -4,6 +4,10 @@
 // 兩種格式：
 //   一般公告（post）  標題＋內容，可以附一張圖、GIF 或 MP4；內容太長時列表上收成幾行，點一下跳出視窗看全文
 //   快速連結（link）  左邊圖片（沒有圖也可以）、右邊名稱與內容；整張點下去在新分頁開啟網址
+//
+// 順序：置頂的永遠在最上面；同一組（置頂組、一般組）裡可以按「上移／下移」手動調整。
+//   手動排過的項目會記下 rank（數字越大越前面）；還沒手動排過的（rank 是 0，例如剛新增或剛匯入的）排在該組最上面，
+//   同一批的依建立時間，建立時間相同（批次匯入）就依檔案順序，最後一項在最上面。
 
 import {
   db,
@@ -43,12 +47,23 @@ function normalize(id, d) {
     url: String(d.url ?? ""),
     createdBy: String(d.createdBy ?? ""),
     order: Number.isInteger(d.order) ? d.order : 0,
+    pinned: d.pinned === true,
+    rank: Number.isInteger(d.rank) && d.rank > 0 ? d.rank : 0,
     date: toDate(d.createdAt),
   };
 }
 
 // 新的在上面；同一批匯入的（建立時間相同）依檔案順序，最後一則在最上面
 const newestFirst = (a, b) => time(b) - time(a) || b.order - a.order || (a.id < b.id ? -1 : 1);
+
+// 顯示順序：置頂的在前 → 還沒手動排過的（rank 0）在前 → 手動排過的依 rank 由大到小 → 最後依新舊
+const displayOrder = (a, b) =>
+  Number(b.pinned) - Number(a.pinned) ||
+  Number(b.rank === 0) - Number(a.rank === 0) ||
+  (a.rank === 0 ? 0 : b.rank - a.rank) ||
+  newestFirst(a, b);
+
+const RANK_BATCH = 400; // 一次批次寫入的上限是 500 筆，留一些餘裕
 
 /**
  * @param {{run: Function, toast: Function, selectTab: Function, upload: {picker: Function}, whoName: () => string}} deps admin.js 的共用函式
@@ -58,6 +73,9 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
   let editingId = null;
   let originalMedia = ""; // 編輯時，這一則原本的附件
   let unsub = null;
+  let busy = false; // 正在寫入順序時，不接受再按一次（避免用舊的順序算出錯的結果）
+  let pendingFocus = null; // 重新畫出列表後，把焦點還給剛按過的按鈕：{ id, act }
+  let focusTimer = null;
 
   /* ---------- 表單 ---------- */
 
@@ -142,6 +160,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
     $("i-body").value = it.body;
     $("i-url").value = it.url;
     $("i-media").value = it.media;
+    $("i-pinned").checked = it.pinned;
     $("internalFormTitle").textContent = "編輯內部公告";
     $("internalCancelBtn").hidden = false;
     syncKind();
@@ -170,28 +189,66 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
       return;
     }
 
+    const pinned = $("i-pinned").checked;
+    const cur = editingId ? items.find((x) => x.id === editingId) : null;
+
     $("internalSaveBtn").disabled = true;
-    const ok = editingId
-      ? await run(() => updateDoc(doc(db, "internal", editingId), { ...c.data, updatedAt: serverTimestamp() }), "已儲存內部公告")
-      : await run(
-          () =>
-            addDoc(collection(db, "internal"), {
-              ...c.data,
-              createdBy: whoName(),
-              order: 0,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            }),
-          "已儲存內部公告"
-        );
+    let ok;
+    if (editingId && cur && cur.pinned !== pinned) {
+      // 置頂狀態有改：和按「置頂」按鈕一樣，排到新那一組的最上面（內容與順序在同一次寫入）
+      ok = await saveRanks(topOf(cur, pinned), { [cur.id]: { ...c.data, pinned } }, "已儲存內部公告");
+    } else if (editingId) {
+      ok = await run(() => updateDoc(doc(db, "internal", editingId), { ...c.data, pinned, updatedAt: serverTimestamp() }), "已儲存內部公告");
+    } else {
+      ok = await run(
+        () =>
+          addDoc(collection(db, "internal"), {
+            ...c.data,
+            pinned,
+            createdBy: whoName(),
+            order: 0,
+            rank: 0,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          }),
+        "已儲存內部公告"
+      );
+    }
     $("internalSaveBtn").disabled = false;
     if (ok) resetForm();
   });
 
   /* ---------- 列表 ---------- */
 
+  const pinBadge = (it) => (it.pinned ? '<span class="badge pin">置頂</span>' : "");
   const metaOf = (it) =>
-    `<span>${esc(it.createdBy)}</span><time>${formatDateTime(it.date, true)}</time>`;
+    `${pinBadge(it)}<span>${esc(it.createdBy)}</span><time>${formatDateTime(it.date, true)}</time>`;
+
+  // 同一組（都置頂、或都沒置頂）的項目，依目前顯示順序
+  const groupOf = (pinned) => items.filter((x) => x.pinned === pinned);
+  // 把 it 放到 pinned 那一組的最上面之後的整組順序
+  const topOf = (it, pinned) => [it, ...groupOf(pinned).filter((x) => x.id !== it.id)];
+
+  /**
+   * 依 list 的順序重新寫入 rank（最上面的最大）。只寫 rank 有變的項目；extra 是某些項目要一起改的其他欄位（id → 欄位）。
+   * 資料量不大，直接整組重編號最單純；超過一個批次的上限就分批寫。
+   */
+  function saveRanks(list, extra = {}, okText = "") {
+    const writes = [];
+    list.forEach((x, i) => {
+      const rank = list.length - i;
+      if (rank !== x.rank || extra[x.id]) writes.push([x.id, { ...(extra[x.id] || {}), rank }]);
+    });
+    return run(async () => {
+      for (let k = 0; k < writes.length; k += RANK_BATCH) {
+        const batch = writeBatch(db);
+        for (const [id, data] of writes.slice(k, k + RANK_BATCH)) {
+          batch.update(doc(db, "internal", id), { ...data, updatedAt: serverTimestamp() });
+        }
+        await batch.commit();
+      }
+    }, okText);
+  }
 
   function thumbHtml(it) {
     const src = mediaUrl(it.media);
@@ -204,11 +261,17 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
     }</div>`;
   }
 
-  function rowHtml(it) {
+  function rowHtml(it, group) {
+    const gi = group.indexOf(it);
+    const label = esc(it.title);
     const actions = `<div class="row-actions">
+        <button type="button" data-act="pin" aria-pressed="${it.pinned}" title="${it.pinned ? "取消置頂，回到一般列表的最上面" : "置頂，排到列表最上面"}">${it.pinned ? "取消置頂" : "置頂"}</button>
+        <button type="button" data-act="up" aria-label="上移「${label}」"${gi <= 0 ? " disabled" : ""}>↑ 上移</button>
+        <button type="button" data-act="down" aria-label="下移「${label}」"${gi >= group.length - 1 ? " disabled" : ""}>↓ 下移</button>
         <button type="button" data-act="edit">編輯</button>
         <button type="button" data-act="delete" class="danger">刪除</button>
       </div>`;
+    const cls = `row internal${it.pinned ? " is-pinned" : ""}`;
 
     if (it.kind === "link") {
       const href = safeUrl(it.url);
@@ -218,9 +281,9 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
           <span class="link-main">
             <span class="row-title">${esc(it.title)}</span>
             ${it.body ? `<span class="clamp">${esc(excerpt(it.body, 160))}</span>` : ""}
-            <span class="link-host">${href ? `${esc(hostOf(href))} ↗` : "網址無效，請編輯修正"}</span>
+            <span class="link-host">${pinBadge(it)} ${href ? `${esc(hostOf(href))} ↗` : "網址無效，請編輯修正"}</span>
           </span>`;
-      return `<li class="row internal is-link" data-id="${esc(it.id)}">
+      return `<li class="${cls} is-link" data-id="${esc(it.id)}">
       ${
         href
           ? `<a class="link-card" href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="開啟 ${esc(hostOf(href))}">${inner}</a>`
@@ -230,7 +293,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
     </li>`;
     }
 
-    return `<li class="row internal${it.media ? " has-thumb" : ""}" data-id="${esc(it.id)}">
+    return `<li class="${cls}${it.media ? " has-thumb" : ""}" data-id="${esc(it.id)}">
       ${thumbHtml(it)}
       <button type="button" class="row-open" data-act="open" title="點一下看完整內容">
         <span class="row-title">${esc(it.title)}</span>
@@ -243,10 +306,24 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
 
   function render() {
     $("internalCount").textContent = items.length ? `內部公告（共 ${items.length} 則）` : "內部公告";
+    const groups = { true: groupOf(true), false: groupOf(false) };
     $("internalList").innerHTML = items.length
-      ? items.map(rowHtml).join("")
+      ? items.map((it) => rowHtml(it, groups[it.pinned])).join("")
       : '<li><p class="empty">還沒有內部公告。用下面的表單新增第一則。</p></li>';
     imp.render();
+    restoreFocus();
+  }
+
+  // 按了上移／下移／置頂後列表會整個重畫，焦點要回到同一則的同一個按鈕（到頂或到底而停用時，改給另一個移動按鈕）
+  function restoreFocus() {
+    if (!pendingFocus) return;
+    const li = [...$("internalList").children].find((x) => x.dataset.id === pendingFocus.id);
+    const order = pendingFocus.act === "down" ? ["down", "up"] : pendingFocus.act === "up" ? ["up", "down"] : [pendingFocus.act];
+    const target = li && order.map((a) => li.querySelector(`button[data-act="${a}"]:not([disabled])`)).find(Boolean);
+    if (target) {
+      target.focus({ preventScroll: false });
+      pendingFocus = null;
+    }
   }
 
   $("internalList").addEventListener("click", async (e) => {
@@ -257,7 +334,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
       case "open":
         openViewer({
           title: it.title,
-          badges: [{ text: KIND_LABELS.post }],
+          badges: [{ text: KIND_LABELS.post }, ...(it.pinned ? [{ text: "置頂", tone: "pin" }] : [])],
           meta: `${it.createdBy}　${formatDateTime(it.date, true)}`,
           body: it.body,
           media: it.media,
@@ -267,6 +344,33 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
       case "edit":
         startEdit(it);
         break;
+      case "pin":
+      case "up":
+      case "down": {
+        if (busy) return;
+        busy = true;
+        pendingFocus = { id: it.id, act: btn.dataset.act };
+        clearTimeout(focusTimer);
+        focusTimer = setTimeout(() => (pendingFocus = null), 3000);
+        try {
+          if (btn.dataset.act === "pin") {
+            const want = !it.pinned;
+            await saveRanks(topOf(it, want), { [it.id]: { pinned: want } }, want ? "已置頂" : "已取消置頂");
+          } else {
+            const group = groupOf(it.pinned);
+            const i = group.findIndex((x) => x.id === it.id);
+            const j = btn.dataset.act === "up" ? i - 1 : i + 1;
+            if (i >= 0 && j >= 0 && j < group.length) {
+              const next = [...group];
+              [next[i], next[j]] = [next[j], next[i]];
+              await saveRanks(next);
+            }
+          }
+        } finally {
+          busy = false;
+        }
+        break;
+      }
       case "delete":
         if (!confirm(`確定要刪除內部公告「${it.title}」嗎？刪除後無法復原。（附加的檔案不會被刪除）`)) return;
         if (editingId === it.id) resetForm();
@@ -311,6 +415,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
       return `<p class="row-title">${esc(a.title)}</p>
             <p class="row-meta">
               <span class="badge ${a.kind === "link" ? "pin" : "on"}">${esc(KIND_LABELS[a.kind])}</span>
+              ${a.pinned ? '<span class="badge pin">置頂</span>' : ""}
               ${a.media ? `<span>附件：${esc(a.media)}</span>` : ""}
               ${a.kind === "link" ? `<span>${esc(hostOf(a.url))}</span>` : ""}
               ${a.createdBy ? `<span>署名：${esc(a.createdBy)}</span>` : ""}
@@ -329,8 +434,10 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
             body: a.body,
             media: a.media,
             url: a.url,
+            pinned: a.pinned,
             createdBy: a.createdBy || by,
             order: i,
+            rank: 0,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
@@ -356,7 +463,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
           say("");
           items = snap.docs
             .map((d) => normalize(d.id, d.data({ serverTimestamps: "estimate" })))
-            .sort(newestFirst);
+            .sort(displayOrder);
           render();
         },
         (err) => {
@@ -373,6 +480,9 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
       unsub?.();
       unsub = null;
       items = [];
+      busy = false;
+      pendingFocus = null;
+      clearTimeout(focusTimer);
       resetForm();
       imp.clear();
       say("");

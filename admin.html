@@ -9,32 +9,32 @@
   <script type="importmap">
 {
   "imports": {
-    "./js/admin-bg.js": "./js/admin-bg.js?v=4155032861",
-    "./js/admin-chat.js": "./js/admin-chat.js?v=4155032861",
-    "./js/admin-import.js": "./js/admin-import.js?v=4155032861",
-    "./js/admin-internal.js": "./js/admin-internal.js?v=4155032861",
-    "./js/admin-upload.js": "./js/admin-upload.js?v=4155032861",
-    "./js/admin-wall.js": "./js/admin-wall.js?v=4155032861",
-    "./js/admin.js": "./js/admin.js?v=4155032861",
-    "./js/background.js": "./js/background.js?v=4155032861",
-    "./js/chat-account.js": "./js/chat-account.js?v=4155032861",
-    "./js/chat-core.js": "./js/chat-core.js?v=4155032861",
-    "./js/chat-data.js": "./js/chat-data.js?v=4155032861",
-    "./js/chat-media.js": "./js/chat-media.js?v=4155032861",
-    "./js/chat-ui.js": "./js/chat-ui.js?v=4155032861",
-    "./js/chat.js": "./js/chat.js?v=4155032861",
-    "./js/defaults.js": "./js/defaults.js?v=4155032861",
-    "./js/firebase-auth.js": "./js/firebase-auth.js?v=4155032861",
-    "./js/firebase-config.js": "./js/firebase-config.js?v=4155032861",
-    "./js/firebase.js": "./js/firebase.js?v=4155032861",
-    "./js/github-upload.js": "./js/github-upload.js?v=4155032861",
-    "./js/import-items.js": "./js/import-items.js?v=4155032861",
-    "./js/import.js": "./js/import.js?v=4155032861",
-    "./js/internal.js": "./js/internal.js?v=4155032861",
-    "./js/public.js": "./js/public.js?v=4155032861",
-    "./js/text.js": "./js/text.js?v=4155032861",
-    "./js/viewer.js": "./js/viewer.js?v=4155032861",
-    "./js/wall.js": "./js/wall.js?v=4155032861"
+    "./js/admin-bg.js": "./js/admin-bg.js?v=3da30be9ec",
+    "./js/admin-chat.js": "./js/admin-chat.js?v=3da30be9ec",
+    "./js/admin-import.js": "./js/admin-import.js?v=3da30be9ec",
+    "./js/admin-internal.js": "./js/admin-internal.js?v=3da30be9ec",
+    "./js/admin-upload.js": "./js/admin-upload.js?v=3da30be9ec",
+    "./js/admin-wall.js": "./js/admin-wall.js?v=3da30be9ec",
+    "./js/admin.js": "./js/admin.js?v=3da30be9ec",
+    "./js/background.js": "./js/background.js?v=3da30be9ec",
+    "./js/chat-account.js": "./js/chat-account.js?v=3da30be9ec",
+    "./js/chat-core.js": "./js/chat-core.js?v=3da30be9ec",
+    "./js/chat-data.js": "./js/chat-data.js?v=3da30be9ec",
+    "./js/chat-media.js": "./js/chat-media.js?v=3da30be9ec",
+    "./js/chat-ui.js": "./js/chat-ui.js?v=3da30be9ec",
+    "./js/chat.js": "./js/chat.js?v=3da30be9ec",
+    "./js/defaults.js": "./js/defaults.js?v=3da30be9ec",
+    "./js/firebase-auth.js": "./js/firebase-auth.js?v=3da30be9ec",
+    "./js/firebase-config.js": "./js/firebase-config.js?v=3da30be9ec",
+    "./js/firebase.js": "./js/firebase.js?v=3da30be9ec",
+    "./js/github-upload.js": "./js/github-upload.js?v=3da30be9ec",
+    "./js/import-items.js": "./js/import-items.js?v=3da30be9ec",
+    "./js/import.js": "./js/import.js?v=3da30be9ec",
+    "./js/internal.js": "./js/internal.js?v=3da30be9ec",
+    "./js/public.js": "./js/public.js?v=3da30be9ec",
+    "./js/text.js": "./js/text.js?v=3da30be9ec",
+    "./js/viewer.js": "./js/viewer.js?v=3da30be9ec",
+    "./js/wall.js": "./js/wall.js?v=3da30be9ec"
   }
 }
   </script>
@@ -44,9 +44,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=4155032861">
-  <link rel="stylesheet" href="css/admin.css?v=4155032861">
-  <link rel="stylesheet" href="css/chat.css?v=4155032861">
+  <link rel="stylesheet" href="css/style.css?v=3da30be9ec">
+  <link rel="stylesheet" href="css/admin.css?v=3da30be9ec">
+  <link rel="stylesheet" href="css/chat.css?v=3da30be9ec">
 </head>
 <body>
   <header class="top">
@@ -413,6 +413,9 @@
             <div id="i-current" class="i-current" hidden></div>
             <p class="hint">上傳的檔案會存進網站的 media 資料夾，知道網址的人都看得到，請不要放機密內容；內部公告的文字本身只有登入後台的人看得到。第一次上傳要先到「圖片牆」分頁設定 GitHub。</p>
           </div>
+          <div class="checks">
+            <label><input id="i-pinned" type="checkbox"> 置頂（排在列表最上面）</label>
+          </div>
           <div class="actions">
             <button id="internalSaveBtn" type="submit" class="btn">儲存內部公告</button>
             <button id="internalCancelBtn" type="button" class="btn ghost" hidden>取消編輯</button>
@@ -421,7 +424,7 @@
 
         <details id="internalImportBox" class="panel import-box">
           <summary>批次匯入內部公告（上傳 JSON 檔）</summary>
-          <p class="hint">一次上傳多則內部公告（一般公告與快速連結都可以）。檔案格式見 README；也可以把文字貼給 Claude，請它轉成這種 JSON 檔。附加的圖片要先上傳到 media 資料夾（或用 https:// 網址）再寫進檔案。檔案裡最後一則會排在最上面。</p>
+          <p class="hint">一次上傳多則內部公告（一般公告與快速連結都可以）。檔案格式見 README；也可以把文字貼給 Claude，請它轉成這種 JSON 檔。附加的圖片要先上傳到 media 資料夾（或用 https:// 網址）再寫進檔案。檔案裡最後一則會排在最上面；也可以在檔案裡用 pinned 設定是否置頂。</p>
           <div class="field">
             <label for="internalImportFile">選擇 JSON 檔</label>
             <input id="internalImportFile" type="file" accept=".json,application/json">
@@ -443,7 +446,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="js/admin.js?v=4155032861"></script>
+  <script type="module" src="js/admin.js?v=3da30be9ec"></script>
   <noscript><p class="notice">後台需要啟用 JavaScript。</p></noscript>
 </body>
 </html>
