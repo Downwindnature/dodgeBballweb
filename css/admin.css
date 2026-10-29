@@ -67,7 +67,7 @@ code {
   color: #fff;
 }
 
-/* 分頁左上角的紅色圓形數字（新增了幾個待辦） */
+/* 分頁左上角的紅色圓形數字（新增了幾個；私訊是有幾個對話還沒讀） */
 .tab-badge {
   position: absolute;
   top: -10px;
@@ -90,9 +90,20 @@ code {
   display: none;
 }
 
-.tabs .tabs-link {
-  margin-left: auto;
-  padding: 0.6rem 0.4rem;
+/* 右上角（帳號名稱旁）的「開啟前台」 */
+.userbox .front-link {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--blue);
+  border-radius: 2px;
+  background: rgba(23, 69, 110, 0.07);
+  color: var(--blue-ink);
+  font-size: 0.875rem;
+  text-decoration: underline;
+}
+
+.userbox .front-link:hover {
+  background: var(--blue);
+  color: #fff;
 }
 
 /* 表單 */

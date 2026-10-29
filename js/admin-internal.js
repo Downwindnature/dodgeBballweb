@@ -66,9 +66,10 @@ const displayOrder = (a, b) =>
 const RANK_BATCH = 400; // 一次批次寫入的上限是 500 筆，留一些餘裕
 
 /**
- * @param {{run: Function, toast: Function, selectTab: Function, upload: {picker: Function}, whoName: () => string}} deps admin.js 的共用函式
+ * @param {{run: Function, toast: Function, selectTab: Function, upload: {picker: Function}, whoName: () => string, onItems?: (items: object[]) => void}} deps
+ *   admin.js 的共用函式；onItems 在每次讀到內部公告時收到完整清單（分頁上的新增提示要用）
  */
-export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
+export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onItems }) {
   let items = [];
   let editingId = null;
   let originalMedia = ""; // 編輯時，這一則原本的附件
@@ -465,6 +466,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName }) {
             .map((d) => normalize(d.id, d.data({ serverTimestamps: "estimate" })))
             .sort(displayOrder);
           render();
+          onItems?.(items);
         },
         (err) => {
           // 還沒把新版規則貼到 Firebase 時會是 permission-denied：只在這個分頁提醒，不要把整個後台當成沒權限

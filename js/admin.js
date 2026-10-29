@@ -26,6 +26,7 @@ import { setupWallAdmin } from "./admin-wall.js";
 import { setupBackgroundAdmin } from "./admin-bg.js";
 import { setupChatAdmin } from "./admin-chat.js";
 import { setupInternalAdmin } from "./admin-internal.js";
+import { createNewBadge, paintBadge } from "./admin-badges.js";
 import { closeViewer, openViewer } from "./viewer.js";
 import { excerpt } from "./internal.js";
 import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "./firebase-auth.js";
@@ -64,6 +65,7 @@ const store = {
   },
 };
 const NAME_KEY = "bball.adminName";
+const DEFAULT_NAME = "版主"; // 署名欄沒填時用的名字（admin.html 的 placeholder 也要同步）
 
 let items = []; // 公告
 let todos = []; // 待辦事項
@@ -152,7 +154,7 @@ function normalizeComment(id, d) {
 }
 
 const nextNo = () => items.reduce((m, a) => Math.max(m, a.no), 0) + 1;
-const whoName = () => $("whoName").value.trim().slice(0, 20) || "群主";
+const whoName = () => $("whoName").value.trim().slice(0, 20) || DEFAULT_NAME;
 
 // 刪除公告或待辦時，先把它底下的留言一起刪掉（Firestore 不會自動刪子集合）
 async function deleteWithComments(kind, id) {
@@ -169,7 +171,7 @@ function selectTab(name) {
     $(`tab-${t}`).setAttribute("aria-selected", String(on));
     $(`panel-${t}`).hidden = !on;
   }
-  if (name === "todo") updateTodoBadge(); // 進入待辦分頁就算看過，紅圈消失
+  badges[name]?.refresh(); // 進入分頁就算看過，紅圈消失
 }
 for (const t of TABS) $(`tab-${t}`).addEventListener("click", () => selectTab(t));
 
@@ -584,41 +586,21 @@ $("todoForm").addEventListener("submit", async (e) => {
   if (ok) resetTodoForm();
 });
 
-/* ---------- 待辦的新增提示（分頁左上角的紅圈） ---------- */
+/* ---------- 新增提示（分頁左上角的紅圈） ---------- */
 
-// 記在這台瀏覽器：看過的最新一則待辦的建立時間（毫秒）。比它新的待辦就算「新增」。
-const SEEN_KEY = "bball.todoSeen";
-let todoSeenAt = null;
-let todosLoaded = false;
-
-const todoTabActive = () => $("tab-todo").getAttribute("aria-selected") === "true";
-
-function markTodosSeen() {
-  const newest = todos.reduce((m, t) => Math.max(m, time(t)), 0);
-  todoSeenAt = Math.max(todoSeenAt ?? 0, newest);
-  store.set(SEEN_KEY, String(todoSeenAt));
-}
-
-function updateTodoBadge() {
-  const badge = $("todoBadge");
-  if (!todosLoaded) {
-    badge.hidden = true;
-    return;
-  }
-  if (todoSeenAt === null) {
-    const saved = store.get(SEEN_KEY);
-    if (saved !== "" && Number.isFinite(Number(saved))) todoSeenAt = Number(saved);
-    else markTodosSeen(); // 第一次使用：已經存在的待辦都算看過，不然會一次跳出一大串
-  }
-  if (todoTabActive()) markTodosSeen(); // 正在看待辦清單時新增的，也直接算看過
-  const n = todos.filter((t) => time(t) > todoSeenAt).length;
-  badge.hidden = n === 0;
-  badge.textContent = n > 99 ? "99+" : String(n);
-  $("tab-todo").setAttribute("aria-label", n ? `待辦事項，${n} 個新增` : "待辦事項");
-}
+// 每個分頁各自記「看過的最新一筆」在這台瀏覽器，細節在 admin-badges.js。
+// 待辦事項沿用原本的記錄名稱 bball.todoSeen。私訊的紅圈是「幾個對話還沒讀」，由 admin-chat.js 回報。
+const badge = (key, tab, label, mode) =>
+  createNewBadge({ store, key, tabId: `tab-${tab}`, badgeId: `${tab}Badge`, label, mode });
+const badges = {
+  ann: badge("bball.annSeen", "ann", "公告管理"),
+  todo: badge("bball.todoSeen", "todo", "待辦事項"),
+  internal: badge("bball.internalSeen", "internal", "內部公告"),
+  wall: badge("bball.wallSeen", "wall", "圖片牆", "ids"),
+};
 
 function renderTodos() {
-  updateTodoBadge();
+  badges.todo.update(todos.map(time));
   const undone = todos.filter((t) => !t.done).length;
   $("todoCount").textContent = todos.length
     ? `待辦清單（未完成 ${undone} 項，共 ${todos.length} 項）`
@@ -740,10 +722,21 @@ const todoImport = setupImport({
 
 // 「從手機或電腦上傳」的 GitHub 設定只有一份，圖片牆與網站背景共用
 const upload = setupUpload({ toast, selectTab });
-const wallAdmin = setupWallAdmin({ run, toast, selectTab, upload });
+const wallAdmin = setupWallAdmin({ run, toast, selectTab, upload, onSlides: (ids) => badges.wall.update(ids) });
 const bgAdmin = setupBackgroundAdmin({ run, toast, upload });
-const chatAdmin = setupChatAdmin({ root: $("chatRoot"), toast });
-const internalAdmin = setupInternalAdmin({ run, toast, selectTab, upload, whoName });
+const chatAdmin = setupChatAdmin({
+  root: $("chatRoot"),
+  toast,
+  onUnread: (n) => paintBadge({ tabId: "tab-chat", badgeId: "chatBadge", label: "私訊", n, unit: "個對話有未讀訊息" }),
+});
+const internalAdmin = setupInternalAdmin({
+  run,
+  toast,
+  selectTab,
+  upload,
+  whoName,
+  onItems: (list) => badges.internal.update(list.map(time)),
+});
 
 /* ---------- 網站設定 ---------- */
 
@@ -811,9 +804,7 @@ function stopAll() {
   for (const key of [...openThreads]) closeThread(key);
   items = [];
   todos = [];
-  todosLoaded = false;
-  todoSeenAt = null;
-  $("todoBadge").hidden = true;
+  for (const b of Object.values(badges)) b.reset();
   wallAdmin.stop();
   bgAdmin.stop();
   chatAdmin.stop();
@@ -849,6 +840,7 @@ function startApp(user) {
         .sort((a, b) => b.no - a.no || time(b) - time(a));
       renderList();
       annImport.render();
+      badges.ann.update(items.map(time));
     },
     denied
   );
@@ -857,7 +849,6 @@ function startApp(user) {
     query(collection(db, "todos"), orderBy("createdAt", "desc")),
     (snap) => {
       todos = snap.docs.map((d) => normalizeTodo(d.id, d.data({ serverTimestamps: "estimate" })));
-      todosLoaded = true;
       renderTodos();
       todoImport.render();
     },

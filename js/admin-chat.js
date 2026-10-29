@@ -11,7 +11,11 @@ import { createConversation } from "./chat-ui.js";
 
 const MIN_PASSWORD = 6;
 
-export function setupChatAdmin({ root, toast }) {
+/**
+ * @param {{root: Element, toast: Function, onUnread?: (n: number) => void}} deps
+ *   onUnread 收到「還沒讀的對話有幾個」（已登入的窗口加總），給分頁上的紅圈用
+ */
+export function setupChatAdmin({ root, toast, onUnread }) {
   let view = "list"; // list | create | login | inbox
   let names = []; // 網站設定裡的聯絡窗口名稱（已去重）
   let contacts = new Map(); // 窗口代碼 → { exists, uid, gen, open }
@@ -33,7 +37,8 @@ export function setupChatAdmin({ root, toast }) {
       .map((n) => {
         const st = statusOf(n.id);
         const tag = !st.open ? "尚未建立帳號" : loggedIn.has(n.id) ? "已建立帳號・已登入" : "已建立帳號";
-        return `<li><button type="button" data-id="${esc(n.id)}"><strong>${esc(n.name)}</strong> <small class="${st.open ? "" : "tag-new"}">${tag}</small></button></li>`;
+        const unread = unreadWatch.get(n.id)?.unread || 0;
+        return `<li><button type="button" data-id="${esc(n.id)}"><strong>${esc(n.name)}</strong> <small class="${st.open ? "" : "tag-new"}">${tag}</small>${unread ? ` <small class="tag-unread">${unread} 個對話未讀</small>` : ""}</button></li>`;
       })
       .join("");
     root.innerHTML = `
@@ -72,9 +77,11 @@ export function setupChatAdmin({ root, toast }) {
     if (view !== "list" || picked?.id !== n.id) return; // 等的時候使用者已經按了別的
     if (already) {
       loggedIn.add(n.id);
+      syncUnreadWatch();
       renderInbox();
     } else {
       loggedIn.delete(n.id);
+      syncUnreadWatch();
       renderLogin();
     }
   }
@@ -181,6 +188,7 @@ export function setupChatAdmin({ root, toast }) {
       await loginContact({ cid: picked.id, username, password: pass, gen: st.gen, uid: st.uid });
       busy = false;
       loggedIn.add(picked.id);
+      syncUnreadWatch();
       renderInbox();
     } catch (err) {
       busy = false;
@@ -198,6 +206,7 @@ export function setupChatAdmin({ root, toast }) {
       const st = statusOf(picked.id);
       await resetContact({ db, cid: picked.id, name: picked.name, gen: st.gen });
       loggedIn.delete(picked.id);
+      syncUnreadWatch();
       logoutContact(picked.id);
       toast(`已重設「${picked.name}」。請點它的名字重新建立帳號。`);
       renderList();
@@ -206,6 +215,52 @@ export function setupChatAdmin({ root, toast }) {
     } finally {
       busy = false;
     }
+  }
+
+  /* ---------- 背景監聽：還沒讀的對話數 → 分頁上的紅圈 ---------- */
+
+  // 這台瀏覽器已經登入的窗口，不用先點進收件匣，就會在背景看對話列表、算出還沒讀的對話有幾個。
+  // （訊息只有窗口本人登入後才看得到；沒有登入的窗口不會被監聽。）
+  const unreadWatch = new Map(); // 窗口代碼 → { stop, unread }
+  let lastUnreadSig = "";
+
+  function reportUnread() {
+    const total = [...unreadWatch.values()].reduce((sum, w) => sum + w.unread, 0);
+    onUnread?.(total);
+    // 名單畫面上也顯示每個窗口各有幾個未讀；數字有變才重畫，避免打斷操作
+    const sig = JSON.stringify([...unreadWatch].map(([id, w]) => [id, w.unread]));
+    if (sig !== lastUnreadSig) {
+      lastUnreadSig = sig;
+      if (view === "list") renderList();
+    }
+  }
+
+  function syncUnreadWatch() {
+    const want = new Set([...loggedIn].filter((id) => statusOf(id).open));
+    for (const [id, w] of [...unreadWatch]) {
+      if (want.has(id)) continue;
+      w.stop();
+      unreadWatch.delete(id);
+    }
+    for (const id of want) {
+      if (unreadWatch.has(id)) continue;
+      const w = { unread: 0, stop: () => {} };
+      unreadWatch.set(id, w);
+      w.stop = watchThreads(
+        getContactDb(id),
+        id,
+        (list) => {
+          w.unread = list.filter(isUnread).length;
+          reportUnread();
+        },
+        () => {
+          // 帳號被重設、規則沒發布等：這個窗口先不算未讀，不打擾使用者（進收件匣時會有明確的提示）
+          w.unread = 0;
+          reportUnread();
+        }
+      );
+    }
+    reportUnread();
   }
 
   /* ---------- 收件匣 ---------- */
@@ -365,6 +420,7 @@ export function setupChatAdmin({ root, toast }) {
     closeSession();
     if (cid) {
       loggedIn.delete(cid);
+      syncUnreadWatch(); // 先停掉背景監聽，再登出，才不會因為權限消失而出現錯誤
       await logoutContact(cid);
     }
     renderList();
@@ -397,6 +453,7 @@ export function setupChatAdmin({ root, toast }) {
     if (run !== sessionCheck) return; // 有更新的一輪檢查了
     const same = now.size === loggedIn.size && [...now].every((id) => loggedIn.has(id));
     loggedIn = now;
+    syncUnreadWatch();
     if (!same) refreshList();
   }
 
@@ -444,6 +501,10 @@ export function setupChatAdmin({ root, toast }) {
       stopSettings?.();
       stopContacts?.();
       stopSettings = stopContacts = null;
+      for (const w of unreadWatch.values()) w.stop();
+      unreadWatch.clear();
+      lastUnreadSig = "";
+      onUnread?.(0);
       closeSession(); // 只關掉畫面與監聽；窗口的登入狀態留著，下次還是直接進去
       sessionCheck++;
       loggedIn = new Set();

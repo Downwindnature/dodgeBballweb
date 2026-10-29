@@ -687,6 +687,11 @@
   color: #8a5a00;
 }
 
+.contacts .tag-unread {
+  color: var(--chat-bad, #c62d22);
+  font-weight: 900;
+}
+
 .inbox {
   display: grid;
   grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);

@@ -9,32 +9,33 @@
   <script type="importmap">
 {
   "imports": {
-    "./js/admin-bg.js": "./js/admin-bg.js?v=3da30be9ec",
-    "./js/admin-chat.js": "./js/admin-chat.js?v=3da30be9ec",
-    "./js/admin-import.js": "./js/admin-import.js?v=3da30be9ec",
-    "./js/admin-internal.js": "./js/admin-internal.js?v=3da30be9ec",
-    "./js/admin-upload.js": "./js/admin-upload.js?v=3da30be9ec",
-    "./js/admin-wall.js": "./js/admin-wall.js?v=3da30be9ec",
-    "./js/admin.js": "./js/admin.js?v=3da30be9ec",
-    "./js/background.js": "./js/background.js?v=3da30be9ec",
-    "./js/chat-account.js": "./js/chat-account.js?v=3da30be9ec",
-    "./js/chat-core.js": "./js/chat-core.js?v=3da30be9ec",
-    "./js/chat-data.js": "./js/chat-data.js?v=3da30be9ec",
-    "./js/chat-media.js": "./js/chat-media.js?v=3da30be9ec",
-    "./js/chat-ui.js": "./js/chat-ui.js?v=3da30be9ec",
-    "./js/chat.js": "./js/chat.js?v=3da30be9ec",
-    "./js/defaults.js": "./js/defaults.js?v=3da30be9ec",
-    "./js/firebase-auth.js": "./js/firebase-auth.js?v=3da30be9ec",
-    "./js/firebase-config.js": "./js/firebase-config.js?v=3da30be9ec",
-    "./js/firebase.js": "./js/firebase.js?v=3da30be9ec",
-    "./js/github-upload.js": "./js/github-upload.js?v=3da30be9ec",
-    "./js/import-items.js": "./js/import-items.js?v=3da30be9ec",
-    "./js/import.js": "./js/import.js?v=3da30be9ec",
-    "./js/internal.js": "./js/internal.js?v=3da30be9ec",
-    "./js/public.js": "./js/public.js?v=3da30be9ec",
-    "./js/text.js": "./js/text.js?v=3da30be9ec",
-    "./js/viewer.js": "./js/viewer.js?v=3da30be9ec",
-    "./js/wall.js": "./js/wall.js?v=3da30be9ec"
+    "./js/admin-badges.js": "./js/admin-badges.js?v=beb9dc069d",
+    "./js/admin-bg.js": "./js/admin-bg.js?v=beb9dc069d",
+    "./js/admin-chat.js": "./js/admin-chat.js?v=beb9dc069d",
+    "./js/admin-import.js": "./js/admin-import.js?v=beb9dc069d",
+    "./js/admin-internal.js": "./js/admin-internal.js?v=beb9dc069d",
+    "./js/admin-upload.js": "./js/admin-upload.js?v=beb9dc069d",
+    "./js/admin-wall.js": "./js/admin-wall.js?v=beb9dc069d",
+    "./js/admin.js": "./js/admin.js?v=beb9dc069d",
+    "./js/background.js": "./js/background.js?v=beb9dc069d",
+    "./js/chat-account.js": "./js/chat-account.js?v=beb9dc069d",
+    "./js/chat-core.js": "./js/chat-core.js?v=beb9dc069d",
+    "./js/chat-data.js": "./js/chat-data.js?v=beb9dc069d",
+    "./js/chat-media.js": "./js/chat-media.js?v=beb9dc069d",
+    "./js/chat-ui.js": "./js/chat-ui.js?v=beb9dc069d",
+    "./js/chat.js": "./js/chat.js?v=beb9dc069d",
+    "./js/defaults.js": "./js/defaults.js?v=beb9dc069d",
+    "./js/firebase-auth.js": "./js/firebase-auth.js?v=beb9dc069d",
+    "./js/firebase-config.js": "./js/firebase-config.js?v=beb9dc069d",
+    "./js/firebase.js": "./js/firebase.js?v=beb9dc069d",
+    "./js/github-upload.js": "./js/github-upload.js?v=beb9dc069d",
+    "./js/import-items.js": "./js/import-items.js?v=beb9dc069d",
+    "./js/import.js": "./js/import.js?v=beb9dc069d",
+    "./js/internal.js": "./js/internal.js?v=beb9dc069d",
+    "./js/public.js": "./js/public.js?v=beb9dc069d",
+    "./js/text.js": "./js/text.js?v=beb9dc069d",
+    "./js/viewer.js": "./js/viewer.js?v=beb9dc069d",
+    "./js/wall.js": "./js/wall.js?v=beb9dc069d"
   }
 }
   </script>
@@ -44,9 +45,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=3da30be9ec">
-  <link rel="stylesheet" href="css/admin.css?v=3da30be9ec">
-  <link rel="stylesheet" href="css/chat.css?v=3da30be9ec">
+  <link rel="stylesheet" href="css/style.css?v=beb9dc069d">
+  <link rel="stylesheet" href="css/admin.css?v=beb9dc069d">
+  <link rel="stylesheet" href="css/chat.css?v=beb9dc069d">
 </head>
 <body>
   <header class="top">
@@ -54,6 +55,7 @@
       <span class="brand">躲B球辦事處後台</span>
       <div id="userBox" class="userbox" hidden>
         <span id="userEmail"></span>
+        <a class="front-link" href="index.html">開啟前台</a>
         <button id="logoutBtn" type="button" class="btn ghost small">登出</button>
       </div>
     </div>
@@ -94,18 +96,17 @@
     <section id="view-app" hidden>
       <div class="who">
         <label for="whoName">署名</label>
-        <input id="whoName" type="text" maxlength="20" placeholder="群主" autocomplete="off">
-        <p class="hint">新增待辦、內部公告與回覆留言時會附上這個名字，只記在這台瀏覽器。不填就署名「群主」。</p>
+        <input id="whoName" type="text" maxlength="20" placeholder="版主" autocomplete="off">
+        <p class="hint">新增待辦、內部公告與回覆留言時會附上這個名字，只記在這台瀏覽器。不填就署名「版主」。</p>
       </div>
 
       <div class="tabs">
-        <button id="tab-ann" type="button" role="tab" aria-selected="true" aria-controls="panel-ann">公告管理</button>
+        <button id="tab-ann" type="button" role="tab" aria-selected="true" aria-controls="panel-ann">公告管理<span id="annBadge" class="tab-badge" hidden></span></button>
+        <button id="tab-internal" type="button" role="tab" aria-selected="false" aria-controls="panel-internal">內部公告<span id="internalBadge" class="tab-badge" hidden></span></button>
         <button id="tab-todo" type="button" role="tab" aria-selected="false" aria-controls="panel-todo">待辦事項<span id="todoBadge" class="tab-badge" hidden></span></button>
-        <button id="tab-wall" type="button" role="tab" aria-selected="false" aria-controls="panel-wall">圖片牆</button>
         <button id="tab-set" type="button" role="tab" aria-selected="false" aria-controls="panel-set">網站設定</button>
-        <button id="tab-chat" type="button" role="tab" aria-selected="false" aria-controls="panel-chat">私訊</button>
-        <button id="tab-internal" type="button" role="tab" aria-selected="false" aria-controls="panel-internal">內部公告</button>
-        <a class="tabs-link" href="index.html">開啟前台</a>
+        <button id="tab-wall" type="button" role="tab" aria-selected="false" aria-controls="panel-wall">圖片牆<span id="wallBadge" class="tab-badge" hidden></span></button>
+        <button id="tab-chat" type="button" role="tab" aria-selected="false" aria-controls="panel-chat">私訊<span id="chatBadge" class="tab-badge" hidden></span></button>
       </div>
 
       <div id="panel-ann" role="tabpanel" aria-labelledby="tab-ann">
@@ -446,7 +447,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="js/admin.js?v=3da30be9ec"></script>
+  <script type="module" src="js/admin.js?v=beb9dc069d"></script>
   <noscript><p class="notice">後台需要啟用 JavaScript。</p></noscript>
 </body>
 </html>

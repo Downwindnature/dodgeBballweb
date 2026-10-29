@@ -43,9 +43,10 @@ const THUMB_RETRY_MS = 8000; // 剛上傳的檔案網站還沒發布時，縮圖
 const THUMB_RETRY_MAX = 15;
 
 /**
- * @param {{run: Function, toast: Function, selectTab: Function, upload: {picker: Function}}} deps admin.js 的共用函式
+ * @param {{run: Function, toast: Function, selectTab: Function, upload: {picker: Function}, onSlides?: (ids: string[]) => void}} deps
+ *   admin.js 的共用函式；onSlides 在每次讀到圖片牆內容時收到所有張的代碼（分頁上的新增提示要用）
  */
-export function setupWallAdmin({ run, toast, selectTab, upload }) {
+export function setupWallAdmin({ run, toast, selectTab, upload, onSlides }) {
   let wall = null; // { defaultSeconds, slides }；還沒載入完成時是 null
   let editingId = null;
   let unsub = null;
@@ -378,6 +379,7 @@ export function setupWallAdmin({ run, toast, selectTab, upload }) {
           // 後台要看得到所有張數（含網址不合格的），所以用原始網址、不過濾
           wall.defaultSeconds = clampSeconds(wall.defaultSeconds, DEFAULT_SECONDS);
           render();
+          onSlides?.(wall.slides.map((s) => s.id));
         },
         onError
       );
