@@ -1,0 +1,29 @@
+{
+  "internal": [
+    {
+      "type": "post",
+      "title": "範例：內部會議紀錄",
+      "body": "1. 十一月練習改成週日。\n2. 新球買二十顆。\n\n詳細內容可以寫很長，列表上只會顯示前幾行，點開才看全文。",
+      "media": "",
+      "createdBy": "群主"
+    },
+    {
+      "type": "post",
+      "title": "範例：附圖片的公告",
+      "body": "圖片先上傳到 media 資料夾，再把路徑寫在 media。",
+      "media": "media/example.png"
+    },
+    {
+      "type": "link",
+      "title": "範例：場地預約系統",
+      "body": "每週一更新，預約請登入後操作。",
+      "url": "https://example.com/booking",
+      "media": "media/example.png"
+    },
+    {
+      "type": "link",
+      "title": "範例：沒有圖片的快速連結",
+      "url": "https://example.org/"
+    }
+  ]
+}

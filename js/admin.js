@@ -18,11 +18,16 @@ import {
   serverTimestamp,
   writeBatch,
 } from "./firebase.js";
-import { parseImport, MAX_FILE_BYTES } from "./import.js";
+import { parseImport } from "./import.js";
+import { parseTodoImport } from "./import-items.js";
+import { setupImport } from "./admin-import.js";
 import { setupUpload } from "./admin-upload.js";
 import { setupWallAdmin } from "./admin-wall.js";
 import { setupBackgroundAdmin } from "./admin-bg.js";
 import { setupChatAdmin } from "./admin-chat.js";
+import { setupInternalAdmin } from "./admin-internal.js";
+import { closeViewer, openViewer } from "./viewer.js";
+import { excerpt } from "./internal.js";
 import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "./firebase-auth.js";
 import { adminEmailDomain, emailAliases } from "./firebase-config.js";
 import { DEFAULT_SETTINGS } from "./defaults.js";
@@ -40,7 +45,7 @@ import {
 
 const $ = (id) => document.getElementById(id);
 const VIEWS = ["loading", "setup", "login", "denied", "app"];
-const TABS = ["ann", "todo", "wall", "set", "chat"];
+const TABS = ["ann", "todo", "wall", "set", "chat", "internal"];
 
 const store = {
   get(key) {
@@ -131,6 +136,7 @@ function normalizeTodo(id, d) {
     detail: String(d.detail ?? ""),
     done: d.done === true,
     createdBy: String(d.createdBy ?? ""),
+    order: Number.isInteger(d.order) ? d.order : 0, // 同一批匯入的建立時間相同，靠它維持檔案裡的順序
     date: toDate(d.createdAt),
   };
 }
@@ -405,16 +411,17 @@ function renderList() {
       const key = `announcements/${a.id}`;
       return `<li class="row${a.published ? "" : " is-draft"}" data-id="${esc(a.id)}">
       <span class="row-no">${padNo(a.no)}</span>
-      <div>
-        <p class="row-title">${esc(a.title)}</p>
-        <p class="row-meta">
+      <button type="button" class="row-open" data-act="open" title="點一下看完整內容">
+        <span class="row-title">${esc(a.title)}</span>
+        ${a.body ? `<span class="clamp">${esc(excerpt(a.body, 300))}</span>` : ""}
+        <span class="row-meta">
           <span class="badge ${a.published ? "on" : "off"}">${a.published ? "已發布" : "草稿"}</span>
           ${a.pinned ? '<span class="badge pin">置頂</span>' : ""}
           ${a.commentsOpen ? "" : '<span class="badge off">已關閉留言</span>'}
           <span>${esc(a.category)}</span>
           <time>${formatDateTime(a.date, true)}</time>
-        </p>
-      </div>
+        </span>
+      </button>
       <div class="row-actions">
         <button type="button" data-act="edit">編輯</button>
         <button type="button" data-act="thread" aria-expanded="${openThreads.has(key)}">${openThreads.has(key) ? "收起留言" : "留言"}</button>
@@ -438,6 +445,19 @@ $("annList").addEventListener("click", async (e) => {
   const label = `NO.${padNo(a.no)}`;
 
   switch (btn.dataset.act) {
+    case "open":
+      openViewer({
+        title: a.title,
+        badges: [
+          { text: a.published ? "已發布" : "草稿", tone: a.published ? "on" : "off" },
+          ...(a.pinned ? [{ text: "置頂", tone: "pin" }] : []),
+          { text: a.category },
+        ],
+        meta: `NO.${padNo(a.no)}　${formatDateTime(a.date, true)}`,
+        body: a.body,
+        opener: btn,
+      });
+      break;
     case "edit":
       startEdit(a);
       break;
@@ -466,129 +486,47 @@ $("annList").addEventListener("click", async (e) => {
 
 /* ---------- 批次匯入公告 ---------- */
 
-let pendingImport = null; // parseImport 的結果；null 表示還沒選檔案
-
-const importSkip = () => $("importSkip").checked;
-
-function clearImport() {
-  pendingImport = null;
-  $("importFile").value = "";
-  $("importMsgs").innerHTML = "";
-  $("importList").innerHTML = "";
-  $("importPreview").hidden = true;
-}
-
-// 依目前的公告清單重算「哪些重複、預計編號」，所以公告清單更新或勾選變動時都會重畫
-function renderImport() {
-  if (!pendingImport) return;
-  const { items: list, errors, warnings } = pendingImport;
-  const existing = new Set(items.map((a) => a.title.trim()));
-  const skip = importSkip();
-  const rows = list.map((a) => ({ ...a, duplicate: existing.has(a.title) }));
-  const willImport = rows.filter((a) => !(skip && a.duplicate));
-  const blocked = errors.length > 0;
-  const start = nextNo();
-
-  $("importPreview").hidden = false;
-  $("importSummary").textContent = blocked
-    ? `檔案有 ${errors.length} 個問題，請修正後重新選擇檔案。`
-    : `檔案共 ${rows.length} 則，將匯入 ${willImport.length} 則` +
-      (rows.length > willImport.length ? `（略過 ${rows.length - willImport.length} 則重複標題）` : "") +
-      "。確認無誤再按「確認匯入」。";
-  $("importSummary").classList.toggle("bad", blocked);
-
-  const shown = (arr) => arr.slice(0, 10);
-  const more = (arr) => (arr.length > 10 ? `<li>…還有 ${arr.length - 10} 項</li>` : "");
-  $("importMsgs").innerHTML =
-    shown(errors).map((m) => `<li class="err">${esc(m)}</li>`).join("") +
-    more(errors) +
-    shown(warnings).map((m) => `<li class="warn">${esc(m)}</li>`).join("") +
-    more(warnings);
-
-  let n = start;
-  $("importList").innerHTML = blocked
-    ? ""
-    : rows
-        .map((a) => {
-          const skipped = skip && a.duplicate;
-          const label = skipped ? "略過" : `NO.${padNo(n++)}`;
-          const excerpt = a.body.length > 70 ? `${a.body.slice(0, 70)}…` : a.body;
-          return `<li class="${skipped ? "is-skipped" : ""}">
-          <span class="import-no">${label}</span>
-          <div>
-            <p class="row-title">${esc(a.title)}</p>
+// 流程與畫面在 admin-import.js，公告、待辦事項、內部公告共用；這裡只說明「公告」自己的部分：編號與寫入格式
+const annImport = setupImport({
+  prefix: "import",
+  noun: "公告",
+  parse: parseImport,
+  titles: () => items.map((a) => a.title),
+  toast,
+  // 公告依檔案裡的順序接在目前最大的編號後面
+  slotLabel: (i) => `NO.${padNo(nextNo() + i)}`,
+  detailHtml: (a) => {
+    const text = excerpt(a.body, 70);
+    return `<p class="row-title">${esc(a.title)}</p>
             <p class="row-meta">
               <span>${esc(a.category)}</span>
               <span class="badge ${a.published ? "on" : "off"}">${a.published ? "發布" : "草稿"}</span>
               ${a.pinned ? '<span class="badge pin">置頂</span>' : ""}
               ${a.commentsOpen ? "" : '<span class="badge off">關閉留言</span>'}
-              ${a.duplicate ? '<span class="badge off">標題與現有公告相同</span>' : ""}
             </p>
-            ${excerpt ? `<p class="import-excerpt">${esc(excerpt)}</p>` : ""}
-          </div>
-        </li>`;
-        })
-        .join("");
-  $("importConfirm").disabled = blocked || willImport.length === 0;
-}
-
-$("importFile").addEventListener("change", async () => {
-  const file = $("importFile").files?.[0];
-  if (!file) {
-    clearImport();
-    return;
-  }
-  if (file.size > MAX_FILE_BYTES) {
-    clearImport();
-    toast("檔案太大了（上限 2 MB）。請拆成幾個檔案。", true);
-    return;
-  }
-  try {
-    pendingImport = parseImport(await file.text(), items.map((a) => a.title));
-  } catch (err) {
-    clearImport();
-    toast(`讀取檔案失敗：${err?.message || err}`, true);
-    return;
-  }
-  renderImport();
-});
-
-$("importSkip").addEventListener("change", renderImport);
-$("importCancel").addEventListener("click", clearImport);
-
-$("importConfirm").addEventListener("click", async () => {
-  if (!pendingImport || pendingImport.errors.length) return;
-  const existing = new Set(items.map((a) => a.title.trim()));
-  const list = pendingImport.items.filter((a) => !(importSkip() && existing.has(a.title)));
-  if (!list.length) return;
-
-  $("importConfirm").disabled = true;
-  const start = nextNo();
-  // 用批次寫入：全部成功或全部失敗，不會只匯入一半
-  const ok = await run(async () => {
-    const batch = writeBatch(db);
-    list.forEach((a, i) => {
-      batch.set(doc(collection(db, "announcements")), {
-        title: a.title,
-        body: a.body,
-        category: a.category,
-        pinned: a.pinned,
-        published: a.published,
-        commentsOpen: a.commentsOpen,
-        no: start + i,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+            ${text ? `<p class="import-excerpt">${esc(text)}</p>` : ""}`;
+  },
+  commit(list) {
+    const start = nextNo();
+    // 用批次寫入：全部成功或全部失敗，不會只匯入一半
+    return run(async () => {
+      const batch = writeBatch(db);
+      list.forEach((a, i) => {
+        batch.set(doc(collection(db, "announcements")), {
+          title: a.title,
+          body: a.body,
+          category: a.category,
+          pinned: a.pinned,
+          published: a.published,
+          commentsOpen: a.commentsOpen,
+          no: start + i,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
       });
-    });
-    await batch.commit();
-  }, `已匯入 ${list.length} 則公告（NO.${padNo(start)}–NO.${padNo(start + list.length - 1)}）`);
-
-  if (ok) {
-    clearImport();
-    $("importBox").open = false;
-  } else {
-    renderImport();
-  }
+      await batch.commit();
+    }, `已匯入 ${list.length} 則公告（NO.${padNo(start)}–NO.${padNo(start + list.length - 1)}）`);
+  },
 });
 
 /* ---------- 待辦事項 ---------- */
@@ -691,7 +629,7 @@ function renderTodos() {
     return;
   }
   // 未完成的排前面，同一組內新的在上
-  const sorted = [...todos].sort((a, b) => Number(a.done) - Number(b.done) || time(b) - time(a));
+  const sorted = [...todos].sort((a, b) => Number(a.done) - Number(b.done) || time(b) - time(a) || b.order - a.order);
   $("todoList").innerHTML = sorted
     .map((t) => {
       const key = `todos/${t.id}`;
@@ -700,15 +638,15 @@ function renderTodos() {
         <input type="checkbox" data-act="toggle"${t.done ? " checked" : ""}>
         <span class="sr">標記為完成</span>
       </label>
-      <div>
-        <p class="row-title">${esc(t.title)}</p>
-        ${t.detail ? `<p class="todo-detail">${esc(t.detail)}</p>` : ""}
-        <p class="row-meta">
+      <button type="button" class="row-open" data-act="open" title="點一下看完整內容">
+        <span class="row-title">${esc(t.title)}</span>
+        ${t.detail ? `<span class="todo-detail clamp">${esc(t.detail)}</span>` : ""}
+        <span class="row-meta">
           ${t.done ? '<span class="badge on">已完成</span>' : ""}
           <span>${esc(t.createdBy)}</span>
           <time>${formatDateTime(t.date, true)}</time>
-        </p>
-      </div>
+        </span>
+      </button>
       <div class="row-actions">
         <button type="button" data-act="edit">編輯</button>
         <button type="button" data-act="thread" aria-expanded="${openThreads.has(key)}">${openThreads.has(key) ? "收起留言" : "留言"}</button>
@@ -738,6 +676,15 @@ $("todoList").addEventListener("click", async (e) => {
   if (!t) return;
 
   switch (btn.dataset.act) {
+    case "open":
+      openViewer({
+        title: t.title,
+        badges: t.done ? [{ text: "已完成", tone: "on" }] : [],
+        meta: `${t.createdBy}　${formatDateTime(t.date, true)}`,
+        body: t.detail,
+        opener: btn,
+      });
+      break;
     case "edit":
       startEditTodo(t);
       break;
@@ -752,6 +699,43 @@ $("todoList").addEventListener("click", async (e) => {
   }
 });
 
+/* ---------- 批次匯入待辦事項 ---------- */
+
+const todoImport = setupImport({
+  prefix: "todoImport",
+  noun: "待辦事項",
+  parse: parseTodoImport,
+  titles: () => todos.map((t) => t.title),
+  toast,
+  detailHtml: (a) => {
+    const text = excerpt(a.detail, 70);
+    return `<p class="row-title">${esc(a.title)}</p>
+            <p class="row-meta">
+              ${a.done ? '<span class="badge on">已完成</span>' : ""}
+              ${a.createdBy ? `<span>署名：${esc(a.createdBy)}</span>` : ""}
+            </p>
+            ${text ? `<p class="import-excerpt">${esc(text)}</p>` : ""}`;
+  },
+  commit: (list) =>
+    run(async () => {
+      // 批次寫入：全部成功或全部失敗。同一批的建立時間相同，所以另外記檔案裡的順序（最後一項排在最上面）
+      const batch = writeBatch(db);
+      const by = whoName();
+      list.forEach((a, i) => {
+        batch.set(doc(collection(db, "todos")), {
+          title: a.title,
+          detail: a.detail,
+          done: a.done,
+          createdBy: a.createdBy || by,
+          order: i,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      });
+      await batch.commit();
+    }, `已匯入 ${list.length} 項待辦事項`),
+});
+
 /* ---------- 圖片牆 ---------- */
 
 // 「從手機或電腦上傳」的 GitHub 設定只有一份，圖片牆與網站背景共用
@@ -759,6 +743,7 @@ const upload = setupUpload({ toast, selectTab });
 const wallAdmin = setupWallAdmin({ run, toast, selectTab, upload });
 const bgAdmin = setupBackgroundAdmin({ run, toast, upload });
 const chatAdmin = setupChatAdmin({ root: $("chatRoot"), toast });
+const internalAdmin = setupInternalAdmin({ run, toast, selectTab, upload, whoName });
 
 /* ---------- 網站設定 ---------- */
 
@@ -832,6 +817,8 @@ function stopAll() {
   wallAdmin.stop();
   bgAdmin.stop();
   chatAdmin.stop();
+  internalAdmin.stop();
+  closeViewer();
   upload.stop();
 }
 
@@ -861,7 +848,7 @@ function startApp(user) {
         .map((d) => normalize(d.id, d.data({ serverTimestamps: "estimate" })))
         .sort((a, b) => b.no - a.no || time(b) - time(a));
       renderList();
-      renderImport();
+      annImport.render();
     },
     denied
   );
@@ -872,12 +859,14 @@ function startApp(user) {
       todos = snap.docs.map((d) => normalizeTodo(d.id, d.data({ serverTimestamps: "estimate" })));
       todosLoaded = true;
       renderTodos();
+      todoImport.render();
     },
     denied
   );
 
   wallAdmin.start(denied);
   chatAdmin.start();
+  internalAdmin.start();
   loadSettings();
 }
 
@@ -950,7 +939,8 @@ if (!isConfigured) {
       stopAll();
       resetForm();
       resetTodoForm();
-      clearImport();
+      annImport.clear();
+      todoImport.clear();
       showView("login");
     }
   });

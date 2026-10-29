@@ -24,7 +24,24 @@ service cloud.firestore {
       return d.title is string && d.title.size() > 0 && d.title.size() <= 200
         && d.detail is string && d.detail.size() <= 2000
         && d.done is bool
-        && d.createdBy is string && d.createdBy.size() <= 20;
+        && d.createdBy is string && d.createdBy.size() <= 20
+        && (!('order' in d) || (d.order is int && d.order >= 0 && d.order <= 100000));
+    }
+
+    // 內部公告：kind 'post' 是一般公告（標題＋內容＋選填的附圖或影片）；
+    // 'link' 是快速連結（名稱＋內容＋選填的縮圖，點下去開 url，所以一定要有 url）。
+    // media 是 media/ 資料夾裡的相對路徑或 http(s) 網址；order 只用來讓同一批匯入的項目維持檔案裡的先後順序。
+    function validInternal(d) {
+      return d.kind in ['post', 'link']
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && d.body is string && d.body.size() <= 5000
+        && d.media is string && d.media.size() <= 500
+        && (d.media == '' || d.media.matches('^(media/|https?://).*'))
+        && d.url is string && d.url.size() <= 1000
+        && (d.url == '' || d.url.matches('^https?://.*'))
+        && (d.kind == 'post' || d.url != '')
+        && d.createdBy is string && d.createdBy.size() <= 20
+        && (!('order' in d) || (d.order is int && d.order >= 0 && d.order <= 100000));
     }
 
     // 留言格式：欄位固定，暱稱 1–20 字，內容 1–500 字，時間必須是伺服器時間。
@@ -73,6 +90,12 @@ service cloud.firestore {
         allow read, delete: if isAdmin();
         allow create: if isAdmin() && validComment(request.resource.data, true);
       }
+    }
+
+    // 內部公告：只有管理員看得到、寫得進去（前台讀者看不到）
+    match /internal/{itemId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && validInternal(request.resource.data);
     }
 
     // 網站設定：任何人可讀，只有管理員能改

@@ -772,3 +772,338 @@ code {
   margin-top: 6px;
   accent-color: var(--blue);
 }
+
+/* ---------- 點開看全文：列表上的標題＋內容摘要（公告、待辦事項、內部公告共用） ---------- */
+.row-open {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-open .row-title,
+.link-main .row-title {
+  display: block;
+}
+
+.row-open:hover .row-title {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.row-open:focus-visible,
+a.link-card:focus-visible {
+  outline: 3px solid var(--ticket);
+  outline-offset: 3px;
+}
+
+/* 內容太長時只露出前幾行，點開才看全文 */
+.clamp {
+  display: -webkit-box;
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.row-open .row-meta {
+  margin-top: 4px;
+}
+
+/* ---------- 內部公告 ---------- */
+.row.internal {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-left: 16px;
+}
+
+.row.internal.has-thumb {
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+}
+
+/* 快速連結：左邊圖片（沒有圖也留著方框）、右邊名稱與內容，整塊點下去開啟網址 */
+.link-card {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  border-radius: 3px;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.link-card {
+  cursor: pointer;
+}
+
+a.link-card:hover .row-title {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.link-card.is-bad {
+  cursor: not-allowed;
+}
+
+.link-thumb {
+  position: relative;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  width: 88px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #e6ecee;
+}
+
+.link-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.link-ico {
+  color: var(--blue);
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.link-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.link-main .clamp {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.link-host {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.link-card.is-bad .link-host {
+  color: var(--danger);
+}
+
+.link-thumb.is-pending img {
+  visibility: hidden;
+}
+
+.link-thumb.is-pending::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  content: "發布中…";
+  font-size: 0.8125rem;
+}
+
+/* 表單裡「目前附加的檔案」 */
+.i-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 8px 0;
+}
+
+.i-current[hidden] {
+  display: none;
+}
+
+.i-current-text {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.i-current-text code {
+  display: block;
+  margin-top: 2px;
+}
+
+/* ---------- 全文檢視視窗 ---------- */
+html.viewer-open {
+  overflow: hidden;
+}
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(18, 21, 24, 0.62);
+  overscroll-behavior: contain;
+}
+
+.viewer-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 720px);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  outline: none;
+}
+
+.viewer-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.375rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.viewer-x:hover {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.viewer-x:focus-visible {
+  outline: 3px solid var(--ticket);
+  outline-offset: 2px;
+}
+
+.viewer-scroll {
+  padding: 22px 24px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.viewer-title {
+  margin: 0 2.5rem 8px 0;
+  color: var(--blue-ink);
+  font-size: 1.25rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.viewer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.viewer-meta[hidden] {
+  display: none;
+}
+
+.viewer-media {
+  margin: 0 0 14px;
+  text-align: center;
+}
+
+.viewer-media img,
+.viewer-media video {
+  display: block;
+  max-width: 100%;
+  max-height: 50vh;
+  margin: 0 auto;
+  border-radius: 2px;
+  background: var(--night);
+}
+
+.viewer-media.is-bad {
+  padding: 14px;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.viewer-body {
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.viewer-body a {
+  color: var(--blue);
+}
+
+.viewer-body.is-empty {
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .row.internal {
+    grid-template-columns: minmax(0, 1fr);
+    padding-left: 12px;
+  }
+
+  .row.internal.has-thumb {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .row.internal .row-actions {
+    padding-left: 0;
+  }
+
+  .row.internal.has-thumb .row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .link-card {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .link-thumb {
+    width: 72px;
+  }
+
+  .viewer {
+    padding: 8px;
+  }
+
+  .viewer-card {
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+
+  .viewer-scroll {
+    padding: 18px 16px 20px;
+  }
+}

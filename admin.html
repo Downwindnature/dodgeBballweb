@@ -9,27 +9,32 @@
   <script type="importmap">
 {
   "imports": {
-    "./js/admin-bg.js": "./js/admin-bg.js?v=4c574b2189",
-    "./js/admin-chat.js": "./js/admin-chat.js?v=4c574b2189",
-    "./js/admin-upload.js": "./js/admin-upload.js?v=4c574b2189",
-    "./js/admin-wall.js": "./js/admin-wall.js?v=4c574b2189",
-    "./js/admin.js": "./js/admin.js?v=4c574b2189",
-    "./js/background.js": "./js/background.js?v=4c574b2189",
-    "./js/chat-account.js": "./js/chat-account.js?v=4c574b2189",
-    "./js/chat-core.js": "./js/chat-core.js?v=4c574b2189",
-    "./js/chat-data.js": "./js/chat-data.js?v=4c574b2189",
-    "./js/chat-media.js": "./js/chat-media.js?v=4c574b2189",
-    "./js/chat-ui.js": "./js/chat-ui.js?v=4c574b2189",
-    "./js/chat.js": "./js/chat.js?v=4c574b2189",
-    "./js/defaults.js": "./js/defaults.js?v=4c574b2189",
-    "./js/firebase-auth.js": "./js/firebase-auth.js?v=4c574b2189",
-    "./js/firebase-config.js": "./js/firebase-config.js?v=4c574b2189",
-    "./js/firebase.js": "./js/firebase.js?v=4c574b2189",
-    "./js/github-upload.js": "./js/github-upload.js?v=4c574b2189",
-    "./js/import.js": "./js/import.js?v=4c574b2189",
-    "./js/public.js": "./js/public.js?v=4c574b2189",
-    "./js/text.js": "./js/text.js?v=4c574b2189",
-    "./js/wall.js": "./js/wall.js?v=4c574b2189"
+    "./js/admin-bg.js": "./js/admin-bg.js?v=4155032861",
+    "./js/admin-chat.js": "./js/admin-chat.js?v=4155032861",
+    "./js/admin-import.js": "./js/admin-import.js?v=4155032861",
+    "./js/admin-internal.js": "./js/admin-internal.js?v=4155032861",
+    "./js/admin-upload.js": "./js/admin-upload.js?v=4155032861",
+    "./js/admin-wall.js": "./js/admin-wall.js?v=4155032861",
+    "./js/admin.js": "./js/admin.js?v=4155032861",
+    "./js/background.js": "./js/background.js?v=4155032861",
+    "./js/chat-account.js": "./js/chat-account.js?v=4155032861",
+    "./js/chat-core.js": "./js/chat-core.js?v=4155032861",
+    "./js/chat-data.js": "./js/chat-data.js?v=4155032861",
+    "./js/chat-media.js": "./js/chat-media.js?v=4155032861",
+    "./js/chat-ui.js": "./js/chat-ui.js?v=4155032861",
+    "./js/chat.js": "./js/chat.js?v=4155032861",
+    "./js/defaults.js": "./js/defaults.js?v=4155032861",
+    "./js/firebase-auth.js": "./js/firebase-auth.js?v=4155032861",
+    "./js/firebase-config.js": "./js/firebase-config.js?v=4155032861",
+    "./js/firebase.js": "./js/firebase.js?v=4155032861",
+    "./js/github-upload.js": "./js/github-upload.js?v=4155032861",
+    "./js/import-items.js": "./js/import-items.js?v=4155032861",
+    "./js/import.js": "./js/import.js?v=4155032861",
+    "./js/internal.js": "./js/internal.js?v=4155032861",
+    "./js/public.js": "./js/public.js?v=4155032861",
+    "./js/text.js": "./js/text.js?v=4155032861",
+    "./js/viewer.js": "./js/viewer.js?v=4155032861",
+    "./js/wall.js": "./js/wall.js?v=4155032861"
   }
 }
   </script>
@@ -39,9 +44,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=4c574b2189">
-  <link rel="stylesheet" href="css/admin.css?v=4c574b2189">
-  <link rel="stylesheet" href="css/chat.css?v=4c574b2189">
+  <link rel="stylesheet" href="css/style.css?v=4155032861">
+  <link rel="stylesheet" href="css/admin.css?v=4155032861">
+  <link rel="stylesheet" href="css/chat.css?v=4155032861">
 </head>
 <body>
   <header class="top">
@@ -90,7 +95,7 @@
       <div class="who">
         <label for="whoName">署名</label>
         <input id="whoName" type="text" maxlength="20" placeholder="群主" autocomplete="off">
-        <p class="hint">新增待辦與回覆留言時會附上這個名字，只記在這台瀏覽器。不填就署名「群主」。</p>
+        <p class="hint">新增待辦、內部公告與回覆留言時會附上這個名字，只記在這台瀏覽器。不填就署名「群主」。</p>
       </div>
 
       <div class="tabs">
@@ -99,6 +104,7 @@
         <button id="tab-wall" type="button" role="tab" aria-selected="false" aria-controls="panel-wall">圖片牆</button>
         <button id="tab-set" type="button" role="tab" aria-selected="false" aria-controls="panel-set">網站設定</button>
         <button id="tab-chat" type="button" role="tab" aria-selected="false" aria-controls="panel-chat">私訊</button>
+        <button id="tab-internal" type="button" role="tab" aria-selected="false" aria-controls="panel-internal">內部公告</button>
         <a class="tabs-link" href="index.html">開啟前台</a>
       </div>
 
@@ -178,6 +184,25 @@
             <button id="todoCancelBtn" type="button" class="btn ghost" hidden>取消編輯</button>
           </div>
         </form>
+
+        <details id="todoImportBox" class="panel import-box">
+          <summary>批次匯入待辦事項（上傳 JSON 檔）</summary>
+          <p class="hint">一次上傳多項待辦事項。檔案格式見 README；也可以把文字貼給 Claude，請它轉成這種 JSON 檔。匯入的待辦都是未完成（除非檔案裡寫 done: true），檔案裡最後一項會排在最上面。</p>
+          <div class="field">
+            <label for="todoImportFile">選擇 JSON 檔</label>
+            <input id="todoImportFile" type="file" accept=".json,application/json">
+          </div>
+          <div id="todoImportPreview" hidden>
+            <p id="todoImportSummary" class="import-summary" role="status"></p>
+            <ul id="todoImportMsgs" class="import-msgs"></ul>
+            <label class="import-skip"><input id="todoImportSkip" type="checkbox" checked> 略過標題與現有待辦相同的項目</label>
+            <ol id="todoImportList" class="import-list"></ol>
+            <div class="actions">
+              <button id="todoImportConfirm" type="button" class="btn">確認匯入</button>
+              <button id="todoImportCancel" type="button" class="btn ghost">取消</button>
+            </div>
+          </div>
+        </details>
 
       </div>
 
@@ -348,12 +373,77 @@
       <div id="panel-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
         <div id="chatRoot"></div>
       </div>
+
+      <div id="panel-internal" role="tabpanel" aria-labelledby="tab-internal" hidden>
+        <h2 id="internalCount" class="list-title">內部公告</h2>
+        <p id="internalMsg" class="form-msg" role="alert" hidden></p>
+        <ul id="internalList" class="admin-list"></ul>
+
+        <form id="internalForm" class="panel" autocomplete="off">
+          <h2 id="internalFormTitle">新增內部公告</h2>
+          <p class="hint todo-note">內部公告只有登入後台的人看得到，前台讀者看不到。</p>
+          <div class="field">
+            <label for="i-kind">格式</label>
+            <select id="i-kind">
+              <option value="post">一般公告（標題＋內容，可附圖、GIF、MP4）</option>
+              <option value="link">快速連結（圖片＋名稱，點下去開啟網址）</option>
+            </select>
+            <p id="internalFormHint" class="hint"></p>
+          </div>
+          <div class="field">
+            <label id="i-title-label" for="i-title">標題</label>
+            <input id="i-title" type="text" maxlength="120" required>
+          </div>
+          <div class="field">
+            <label id="i-body-label" for="i-body">內容（選填）</label>
+            <textarea id="i-body" rows="6" maxlength="5000"></textarea>
+            <p class="hint">可以換行；貼上 https:// 開頭的網址，點開全文時會自動變成連結。</p>
+          </div>
+          <div id="i-url-field" class="field" hidden>
+            <label for="i-url">連結網址</label>
+            <input id="i-url" type="text" inputmode="url" maxlength="1000" placeholder="https://…" autocapitalize="none" spellcheck="false">
+            <p class="hint">點下去會在新分頁開啟這個網址，要以 https:// 或 http:// 開頭。</p>
+          </div>
+          <div class="field">
+            <label id="i-file-label" for="i-file">附加圖片、GIF 或 MP4（選填，單檔 25 MB 以內）</label>
+            <input id="i-file" type="file" accept="image/*,video/*,.mp4,.webm,.m4v,.mov,.ogv">
+            <p id="i-upload-msg" class="hint" role="status" aria-live="polite"></p>
+            <p class="hint"><button id="iGhShowBtn" type="button" class="linkbtn" hidden>更改上傳設定（GitHub 專案與權杖）</button></p>
+            <input id="i-media" type="hidden">
+            <div id="i-current" class="i-current" hidden></div>
+            <p class="hint">上傳的檔案會存進網站的 media 資料夾，知道網址的人都看得到，請不要放機密內容；內部公告的文字本身只有登入後台的人看得到。第一次上傳要先到「圖片牆」分頁設定 GitHub。</p>
+          </div>
+          <div class="actions">
+            <button id="internalSaveBtn" type="submit" class="btn">儲存內部公告</button>
+            <button id="internalCancelBtn" type="button" class="btn ghost" hidden>取消編輯</button>
+          </div>
+        </form>
+
+        <details id="internalImportBox" class="panel import-box">
+          <summary>批次匯入內部公告（上傳 JSON 檔）</summary>
+          <p class="hint">一次上傳多則內部公告（一般公告與快速連結都可以）。檔案格式見 README；也可以把文字貼給 Claude，請它轉成這種 JSON 檔。附加的圖片要先上傳到 media 資料夾（或用 https:// 網址）再寫進檔案。檔案裡最後一則會排在最上面。</p>
+          <div class="field">
+            <label for="internalImportFile">選擇 JSON 檔</label>
+            <input id="internalImportFile" type="file" accept=".json,application/json">
+          </div>
+          <div id="internalImportPreview" hidden>
+            <p id="internalImportSummary" class="import-summary" role="status"></p>
+            <ul id="internalImportMsgs" class="import-msgs"></ul>
+            <label class="import-skip"><input id="internalImportSkip" type="checkbox" checked> 略過標題與現有內部公告相同的項目</label>
+            <ol id="internalImportList" class="import-list"></ol>
+            <div class="actions">
+              <button id="internalImportConfirm" type="button" class="btn">確認匯入</button>
+              <button id="internalImportCancel" type="button" class="btn ghost">取消</button>
+            </div>
+          </div>
+        </details>
+      </div>
     </section>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="js/admin.js?v=4c574b2189"></script>
+  <script type="module" src="js/admin.js?v=4155032861"></script>
   <noscript><p class="notice">後台需要啟用 JavaScript。</p></noscript>
 </body>
 </html>
