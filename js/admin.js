@@ -27,6 +27,7 @@ import { setupBackgroundAdmin } from "./admin-bg.js";
 import { setupChatAdmin } from "./admin-chat.js";
 import { setupInternalAdmin } from "./admin-internal.js";
 import { createNewBadge, paintBadge } from "./admin-badges.js";
+import { createCommentWatch } from "./admin-comment-watch.js";
 import { closeViewer, openViewer } from "./viewer.js";
 import { excerpt } from "./internal.js";
 import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "./firebase-auth.js";
@@ -79,6 +80,13 @@ let toastTimer = null;
 const openThreads = new Set(); // 目前展開的留言串
 const threads = new Map(); // key → { items, error, unsub }
 const drafts = new Map(); // key → 還沒送出的回覆，重畫清單時不會弄丟
+// 每一則的「留言」按鈕上的紅色未讀數（細節在 admin-comment-watch.js）
+const commentWatch = createCommentWatch({
+  db,
+  store,
+  isOpen: (key) => openThreads.has(key),
+  onChange: (key) => paintThreadButton(key),
+});
 
 /* ---------- 共用 ---------- */
 
@@ -184,6 +192,35 @@ const threadEl = (key) => document.querySelector(`.thread[data-key="${key}"]`);
 const threadBox = (key) =>
   `<div class="thread" data-key="${esc(key)}"${openThreads.has(key) ? "" : " hidden"}></div>`;
 
+// 「留言」按鈕：展開時是「收起留言」；收起時如果有沒看過的新留言，後面附紅色數字
+function threadBtnParts(key) {
+  const open = openThreads.has(key);
+  const n = open ? 0 : commentWatch.count(key);
+  return {
+    open,
+    html: `${open ? "收起留言" : "留言"}${n ? `<span class="count-badge" aria-hidden="true">${n > 99 ? "99+" : n}</span>` : ""}`,
+    label: n ? `留言，${n} 則未讀` : "",
+  };
+}
+
+const threadBtn = (key) => {
+  const p = threadBtnParts(key);
+  return `<button type="button" data-act="thread" aria-expanded="${p.open}"${p.label ? ` aria-label="${p.label}"` : ""}>${p.html}</button>`;
+};
+
+// 未讀數變了：只改那顆按鈕，不重畫整份清單（才不會打斷正在輸入的回覆）
+function paintThreadButton(key) {
+  const [kind, id] = key.split("/");
+  const list = $(kind === "todos" ? "todoList" : "annList");
+  const row = [...list.children].find((li) => li.dataset?.id === id);
+  const btn = row?.querySelector('button[data-act="thread"]');
+  if (!btn) return;
+  const p = threadBtnParts(key);
+  btn.innerHTML = p.html;
+  if (p.label) btn.setAttribute("aria-label", p.label);
+  else btn.removeAttribute("aria-label");
+}
+
 function paintComments(key) {
   const el = threadEl(key);
   if (!el) return;
@@ -281,6 +318,7 @@ function restoreThreads() {
 }
 
 function toggleThread(key) {
+  commentWatch.opened(key); // 展開或收起的當下，目前已經有的留言都算看過
   if (openThreads.has(key)) closeThread(key);
   else {
     openThreads.add(key);
@@ -426,7 +464,7 @@ function renderList() {
       </button>
       <div class="row-actions">
         <button type="button" data-act="edit">編輯</button>
-        <button type="button" data-act="thread" aria-expanded="${openThreads.has(key)}">${openThreads.has(key) ? "收起留言" : "留言"}</button>
+        ${threadBtn(key)}
         <button type="button" data-act="publish">${a.published ? "下架" : "發布"}</button>
         <button type="button" data-act="pin">${a.pinned ? "取消置頂" : "置頂"}</button>
         <button type="button" data-act="delete" class="danger">刪除</button>
@@ -631,7 +669,7 @@ function renderTodos() {
       </button>
       <div class="row-actions">
         <button type="button" data-act="edit">編輯</button>
-        <button type="button" data-act="thread" aria-expanded="${openThreads.has(key)}">${openThreads.has(key) ? "收起留言" : "留言"}</button>
+        ${threadBtn(key)}
         <button type="button" data-act="delete" class="danger">刪除</button>
       </div>
       ${threadBox(key)}
@@ -802,6 +840,7 @@ function stopAll() {
   unsubTodo?.();
   unsubAnn = unsubTodo = null;
   for (const key of [...openThreads]) closeThread(key);
+  commentWatch.stop();
   items = [];
   todos = [];
   for (const b of Object.values(badges)) b.reset();
@@ -837,6 +876,7 @@ function startApp(user) {
       items = snap.docs
         .map((d) => normalize(d.id, d.data({ serverTimestamps: "estimate" })))
         .sort((a, b) => b.no - a.no || time(b) - time(a));
+      commentWatch.sync("announcements", items.map((a) => a.id));
       renderList();
       annImport.render();
       badges.ann.update(items.map(time));
@@ -848,6 +888,7 @@ function startApp(user) {
     query(collection(db, "todos"), orderBy("createdAt", "desc")),
     (snap) => {
       todos = snap.docs.map((d) => normalizeTodo(d.id, d.data({ serverTimestamps: "estimate" })));
+      commentWatch.sync("todos", todos.map((t) => t.id));
       renderTodos();
       todoImport.render();
     },
