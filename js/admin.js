@@ -76,7 +76,9 @@ let unsubAnn = null;
 let unsubTodo = null;
 let toastTimer = null;
 
-// 留言串：key 是 "announcements/公告id" 或 "todos/待辦id"，和 Firestore 路徑一致
+let internalItems = []; // 內部公告（admin-internal.js 讀到之後回報）
+
+// 留言串：key 是 "announcements/公告id"、"todos/待辦id" 或 "internal/內部公告id"，和 Firestore 路徑一致
 const openThreads = new Set(); // 目前展開的留言串
 const threads = new Map(); // key → { items, error, unsub }
 const drafts = new Map(); // key → 還沒送出的回覆，重畫清單時不會弄丟
@@ -164,10 +166,16 @@ function normalizeComment(id, d) {
 const nextNo = () => items.reduce((m, a) => Math.max(m, a.no), 0) + 1;
 const whoName = () => $("whoName").value.trim().slice(0, 20) || DEFAULT_NAME;
 
-// 刪除公告或待辦時，先把它底下的留言一起刪掉（Firestore 不會自動刪子集合）
+// 刪除公告、待辦或內部公告時，先把它底下的留言一起刪掉（Firestore 不會自動刪子集合）
 async function deleteWithComments(kind, id) {
-  const snap = await getDocs(collection(db, kind, id, "comments"));
-  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+  let docs = [];
+  try {
+    docs = (await getDocs(collection(db, kind, id, "comments"))).docs;
+  } catch (err) {
+    // 內部公告的留言規則是後來才加的：還沒貼上新版規則時讀不到（也不可能有留言），不要因此刪不掉內部公告
+    if (!(kind === "internal" && err?.code === "permission-denied")) throw err;
+  }
+  await Promise.all(docs.map((d) => deleteDoc(d.ref)));
   await deleteDoc(doc(db, kind, id));
 }
 
@@ -208,15 +216,19 @@ const threadBtn = (key) => {
   return `<button type="button" data-act="thread" aria-expanded="${p.open}"${p.label ? ` aria-label="${p.label}"` : ""}>${p.html}</button>`;
 };
 
-// 未讀數變了：只改那顆按鈕，不重畫整份清單（才不會打斷正在輸入的回覆）
+// 每一種留言對應的清單
+const LIST_OF = { announcements: "annList", todos: "todoList", internal: "internalList" };
+
+// 未讀數變了、或展開／收起：只改那顆按鈕，不重畫整份清單（才不會打斷正在輸入的回覆）
 function paintThreadButton(key) {
   const [kind, id] = key.split("/");
-  const list = $(kind === "todos" ? "todoList" : "annList");
-  const row = [...list.children].find((li) => li.dataset?.id === id);
+  const list = $(LIST_OF[kind]);
+  const row = list && [...list.children].find((li) => li.dataset?.id === id);
   const btn = row?.querySelector('button[data-act="thread"]');
   if (!btn) return;
   const p = threadBtnParts(key);
   btn.innerHTML = p.html;
+  btn.setAttribute("aria-expanded", String(p.open));
   if (p.label) btn.setAttribute("aria-label", p.label);
   else btn.removeAttribute("aria-label");
 }
@@ -306,7 +318,7 @@ function closeThread(key) {
 function restoreThreads() {
   for (const key of [...openThreads]) {
     const [kind, id] = key.split("/");
-    const exists = (kind === "announcements" ? items : todos).some((x) => x.id === id);
+    const exists = (kind === "announcements" ? items : kind === "todos" ? todos : internalItems).some((x) => x.id === id);
     if (!exists) {
       closeThread(key);
       continue;
@@ -322,10 +334,10 @@ function toggleThread(key) {
   if (openThreads.has(key)) closeThread(key);
   else {
     openThreads.add(key);
+    paintThread(key);
     subscribeThread(key);
   }
-  renderList();
-  renderTodos();
+  paintThreadButton(key); // 只改這一顆按鈕與這一則的留言串，不重畫整份清單
 }
 
 document.addEventListener("input", (e) => {
@@ -773,7 +785,19 @@ const internalAdmin = setupInternalAdmin({
   selectTab,
   upload,
   whoName,
-  onItems: (list) => badges.internal.update(list.map(time)),
+  onItems: (list) => {
+    internalItems = list;
+    commentWatch.sync("internal", list.map((x) => x.id));
+    badges.internal.update(list.map(time));
+  },
+  // 每一則的留言串（和公告、待辦共用同一套）
+  thread: {
+    btn: threadBtn,
+    box: threadBox,
+    toggle: toggleThread,
+    restore: restoreThreads,
+    remove: (id) => deleteWithComments("internal", id),
+  },
 });
 
 /* ---------- 網站設定 ---------- */
@@ -843,6 +867,7 @@ function stopAll() {
   commentWatch.stop();
   items = [];
   todos = [];
+  internalItems = [];
   for (const b of Object.values(badges)) b.reset();
   wallAdmin.stop();
   bgAdmin.stop();

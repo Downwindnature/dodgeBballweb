@@ -15,7 +15,6 @@ import {
   doc,
   addDoc,
   updateDoc,
-  deleteDoc,
   onSnapshot,
   query,
   orderBy,
@@ -66,10 +65,11 @@ const displayOrder = (a, b) =>
 const RANK_BATCH = 400; // 一次批次寫入的上限是 500 筆，留一些餘裕
 
 /**
- * @param {{run: Function, toast: Function, selectTab: Function, upload: {picker: Function}, whoName: () => string, onItems?: (items: object[]) => void}} deps
- *   admin.js 的共用函式；onItems 在每次讀到內部公告時收到完整清單（分頁上的新增提示要用）
+ * @param {{run: Function, toast: Function, selectTab: Function, upload: {picker: Function}, whoName: () => string, onItems?: (items: object[]) => void, thread: {btn: (key: string) => string, box: (key: string) => string, toggle: (key: string) => void, restore: () => void, remove: (id: string) => Promise<void>}}} deps
+ *   admin.js 的共用函式；onItems 在每次讀到內部公告時收到完整清單（分頁上的新增提示、留言未讀數要用）；
+ *   thread 是每一則的留言串（和公告、待辦共用同一套，key 是 "internal/內部公告id"），remove 會連同底下的留言一起刪除
  */
-export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onItems }) {
+export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onItems, thread }) {
   let items = [];
   let editingId = null;
   let originalMedia = ""; // 編輯時，這一則原本的附件
@@ -265,11 +265,13 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onI
   function rowHtml(it, group) {
     const gi = group.indexOf(it);
     const label = esc(it.title);
+    const key = `internal/${it.id}`;
     const actions = `<div class="row-actions">
         <button type="button" data-act="pin" aria-pressed="${it.pinned}" title="${it.pinned ? "取消置頂，回到一般列表的最上面" : "置頂，排到列表最上面"}">${it.pinned ? "取消置頂" : "置頂"}</button>
         <button type="button" data-act="up" aria-label="上移「${label}」"${gi <= 0 ? " disabled" : ""}>↑ 上移</button>
         <button type="button" data-act="down" aria-label="下移「${label}」"${gi >= group.length - 1 ? " disabled" : ""}>↓ 下移</button>
         <button type="button" data-act="edit">編輯</button>
+        ${thread.btn(key)}
         <button type="button" data-act="delete" class="danger">刪除</button>
       </div>`;
     const cls = `row internal${it.pinned ? " is-pinned" : ""}`;
@@ -291,6 +293,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onI
           : `<span class="link-card is-bad">${inner}</span>`
       }
       ${actions}
+      ${thread.box(key)}
     </li>`;
     }
 
@@ -302,6 +305,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onI
         <span class="row-meta">${metaOf(it)}</span>
       </button>
       ${actions}
+      ${thread.box(key)}
     </li>`;
   }
 
@@ -311,6 +315,7 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onI
     $("internalList").innerHTML = items.length
       ? items.map((it) => rowHtml(it, groups[it.pinned])).join("")
       : '<li><p class="empty">還沒有內部公告。用下面的表單新增第一則。</p></li>';
+    thread.restore(); // 展開中的留言串補畫回去
     imp.render();
     restoreFocus();
   }
@@ -345,6 +350,9 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onI
       case "edit":
         startEdit(it);
         break;
+      case "thread":
+        thread.toggle(`internal/${it.id}`);
+        break;
       case "pin":
       case "up":
       case "down": {
@@ -373,9 +381,9 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onI
         break;
       }
       case "delete":
-        if (!confirm(`確定要刪除內部公告「${it.title}」嗎？刪除後無法復原。（附加的檔案不會被刪除）`)) return;
+        if (!confirm(`確定要刪除內部公告「${it.title}」嗎？底下的留言也會一起刪除，刪除後無法復原。（附加的檔案不會被刪除）`)) return;
         if (editingId === it.id) resetForm();
-        await run(() => deleteDoc(doc(db, "internal", it.id)), "已刪除內部公告");
+        await run(() => thread.remove(it.id), "已刪除內部公告");
         break;
     }
   });
@@ -465,8 +473,8 @@ export function setupInternalAdmin({ run, toast, selectTab, upload, whoName, onI
           items = snap.docs
             .map((d) => normalize(d.id, d.data({ serverTimestamps: "estimate" })))
             .sort(displayOrder);
+          onItems?.(items); // 先回報：admin.js 要先知道最新的清單，畫面上展開中的留言串才知道哪些已經被刪掉
           render();
-          onItems?.(items);
         },
         (err) => {
           // 還沒把新版規則貼到 Firebase 時會是 permission-denied：只在這個分頁提醒，不要把整個後台當成沒權限

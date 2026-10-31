@@ -3,7 +3,7 @@
 // - 「看過」的記錄存在這台瀏覽器（localStorage）：每一則各記一個時間；沒有記錄的就用「第一次使用這個功能的時間」，
 //   所以換瀏覽器或清除瀏覽資料後，既有的留言都算看過，不會一次跳出一大串。
 // - 只讀「看過的時間」之後的留言（Firestore 的條件查詢），沒有新留言時幾乎不花讀取次數。
-// - 公告只算讀者的留言（不算群主自己的回覆）；待辦的留言都是後台的人寫的，全部都算。
+// - 公告只算讀者的留言（不算群主自己的回覆）；待辦與內部公告的留言都是後台的人寫的，全部都算。
 // - 那一則的留言串正在展開時，新來的留言直接算看過（畫面上本來就看得到，包含自己剛送出的回覆）。
 // - 讀取失敗（例如規則還沒更新）時，那一則不顯示數字，不打擾使用者；打開留言串時會有明確的錯誤提示。
 
@@ -52,7 +52,7 @@ export function createCommentWatch({ db, store, key = "bball.commentSeen", isOpe
   }
 
   const seenOf = (itemKey) => load().items[itemKey] ?? load().base;
-  const countable = (itemKey, c) => itemKey.startsWith("todos/") || !c.fromAdmin;
+  const countable = (itemKey, c) => !itemKey.startsWith("announcements/") || !c.fromAdmin;
 
   function count(itemKey) {
     const w = watchers.get(itemKey);
@@ -105,7 +105,7 @@ export function createCommentWatch({ db, store, key = "bball.commentSeen", isOpe
   return {
     /**
      * 公告或待辦的清單有變動時呼叫：新的開始監看、已經刪掉的停止監看。
-     * @param {"announcements"|"todos"} kind
+     * @param {"announcements"|"todos"|"internal"} kind
      * @param {string[]} ids 目前存在的項目代碼，新的排前面（只監看前 MAX_WATCHED 則）
      */
     sync(kind, ids) {

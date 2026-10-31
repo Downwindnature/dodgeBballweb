@@ -95,10 +95,15 @@ service cloud.firestore {
       }
     }
 
-    // 內部公告：只有管理員看得到、寫得進去（前台讀者看不到）
+    // 內部公告與其留言：只有管理員看得到、寫得進去（前台讀者看不到）
     match /internal/{itemId} {
       allow read, delete: if isAdmin();
       allow create, update: if isAdmin() && validInternal(request.resource.data);
+
+      match /comments/{commentId} {
+        allow read, delete: if isAdmin();
+        allow create: if isAdmin() && validComment(request.resource.data, true);
+      }
     }
 
     // 網站設定：任何人可讀，只有管理員能改
